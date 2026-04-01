@@ -1,120 +1,425 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LibreQuant | The Open-Source Workbench for Algorithmic Alpha</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="LibreQuant — local-first, reactive workbench for algorithmic trading. AST discovery, parameter bridge, zero-trust execution."
+    />
+    <meta name="theme-color" content="#f9f9fb" />
+    <meta property="og:title" content="LibreQuant | Algorithmic Alpha" />
+    <meta
+      property="og:description"
+      content="Compress the strategy lifecycle. Local-first research, instant feedback, direct broker integration."
+    />
+    <meta property="og:type" content="website" />
+    <title>LibreQuant | Algorithmic Alpha</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #F9F9FB; color: #1D1D1F; }
-        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(228, 228, 231, 0.5); }
-        .alpha-teal { color: #0D9488; }
-        .bg-alpha-teal { background-color: #0D9488; }
-        .code-font { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; }
+      :root {
+        --bg: #f9f9fb;
+        --text-primary: #1d1d1f;
+        --text-secondary: #6e6e73;
+        --alpha: #0d9488;
+        --risk: #e11d48;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+        background-color: var(--bg);
+        color: var(--text-primary);
+        overflow-x: hidden;
+      }
+      .font-mono-code {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+      }
+      .heading-brand {
+        font-weight: 600;
+        letter-spacing: -0.011em;
+      }
+      .glass {
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.45);
+        box-shadow: 0 4px 24px rgba(29, 29, 31, 0.06);
+      }
+      .bg-grid {
+        background-image: radial-gradient(rgba(110, 110, 115, 0.12) 1px, transparent 1px);
+        background-size: 40px 40px;
+      }
+      .text-alpha {
+        color: var(--alpha);
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      .skip-link {
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+      }
+      .skip-link:focus {
+        position: fixed;
+        left: 1rem;
+        top: 1rem;
+        z-index: 100;
+        width: auto;
+        height: auto;
+        overflow: visible;
+        padding: 0.5rem 1rem;
+        border-radius: 9999px;
+        background: var(--alpha);
+        color: #fff;
+        font-size: 0.875rem;
+      }
     </style>
-</head>
-<body class="antialiased">
+  </head>
+  <body class="antialiased bg-grid">
+    <a href="#main" class="skip-link">Skip to content</a>
 
-    <!-- Minimal GitHub Nav Bar -->
-    <nav class="w-full h-14 bg-[#24292F] flex items-center justify-between px-6 text-white text-sm">
-        <div class="flex items-center space-x-4">
-            <svg height="24" viewBox="0 0 16 16" width="24" class="fill-current"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path></svg>
-            <span class="font-medium opacity-90 underline cursor-pointer">LibreQuant</span> / <span class="font-bold">nexus</span>
+    <nav
+      class="w-full min-h-14 flex flex-wrap items-center justify-between gap-3 px-6 py-3 sticky top-0 z-50 border-b border-black/6 bg-[#f9f9fb]/80 backdrop-blur-xl"
+      aria-label="Primary"
+    >
+      <a
+        href="https://github.com/tompcurran/LibreQuant"
+        class="flex items-center gap-3 text-sm text-[#1d1d1f] hover:opacity-80 transition"
+      >
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+          class="text-[#6e6e73] shrink-0"
+          aria-hidden="true"
+        >
+          <path
+            fill="currentColor"
+            d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"
+          />
+        </svg>
+        <span class="font-semibold text-[#6e6e73]">tompcurran</span>
+        <span class="text-[#6e6e73]/50">/</span>
+        <span class="font-semibold text-[#1d1d1f]">LibreQuant</span>
+      </a>
+      <div class="flex flex-wrap items-center gap-2 md:gap-3">
+        <div class="hidden sm:flex items-center gap-4 text-xs font-medium text-[#6e6e73]">
+          <a href="#pillars" class="hover:text-[#1d1d1f] transition">Principles</a>
+          <a href="#quick-start" class="hover:text-[#1d1d1f] transition">Quick start</a>
+          <a href="#faq" class="hover:text-[#1d1d1f] transition">FAQ</a>
         </div>
-        <div class="flex items-center space-x-3">
-            <div class="flex items-center bg-[#30363D] border border-[#444C56] rounded-md px-2 py-0.5 text-xs">
-                <span class="mr-1">★ Star</span> <span class="bg-[#444C56] px-1.5 rounded-sm">4.1k</span>
-            </div>
+        <div
+          class="inline-flex items-center rounded-full border border-[#1d1d1f]/10 bg-white/70 px-3 py-1.5 text-xs font-medium text-[#6e6e73]"
+        >
+          <span class="mr-2 text-[#1d1d1f]">Star</span>
+          <span class="rounded-full bg-[#1d1d1f]/5 px-2 py-0.5 text-[10px] tabular-nums"
+            >4.1k</span
+          >
         </div>
+      </div>
     </nav>
 
-    <!-- Hero Section -->
-    <header class="max-w-5xl mx-auto pt-24 pb-16 px-6 text-center">
-        <!-- Minimal Logo Asset -->
-        <div class="mb-8 flex justify-center">
-            <svg width="60" height="60" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 30V70H60" stroke="#1D1D1F" stroke-width="4" stroke-linecap="round"/>
-                <circle cx="65" cy="50" r="20" stroke="#0D9488" stroke-width="4"/>
-                <path d="M50 65L80 35M80 35H65M80 35V50" stroke="#0D9488" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+    <main id="main">
+      <div class="max-w-5xl mx-auto text-center pt-16 md:pt-20 pb-12 px-6">
+        <div class="flex justify-center mb-10">
+          <img
+            src="LibreQuantLogo.png"
+            alt="LibreQuant"
+            width="280"
+            height="120"
+            class="max-w-[min(100%,280px)] h-auto w-auto"
+            decoding="async"
+          />
         </div>
-        <h1 class="text-5xl font-bold tracking-tight mb-4">Compress the Strategy Lifecycle.</h1>
-        <p class="text-xl text-zinc-500 max-w-2xl mx-auto mb-10 leading-relaxed">
-            The open-source, local-first workbench for algorithmic alpha. Zero-boilerplate parameter tuning, instant feedback, and secure broker integration.
+        <p class="text-xs font-medium tracking-[0.14em] text-[#6e6e73] uppercase mb-4">
+          Open source · Local-first · MIT
         </p>
-        <div class="flex justify-center space-x-4">
-            <button class="bg-alpha-teal text-white px-8 py-3 rounded-full font-medium hover:opacity-90 transition-all">Get Started (Docker)</button>
-            <button class="border border-zinc-200 px-8 py-3 rounded-full font-medium hover:bg-zinc-50 transition-all">View Docs</button>
-        </div>
-    </header>
+        <h1
+          class="text-4xl md:text-5xl heading-brand text-[#1d1d1f] mb-6 max-w-3xl mx-auto"
+        >
+          The Local-First Workbench <br />
+          for Algorithmic Alpha.
+        </h1>
+        <p
+          class="text-lg font-light text-[#6e6e73] max-w-2xl mx-auto mb-6 leading-relaxed"
+        >
+          Compress the strategy lifecycle. Zero-boilerplate parameter tuning,
+          instant feedback, direct broker integration. Run private, run local.
+        </p>
+        <p class="text-sm text-[#6e6e73]/90 max-w-xl mx-auto mb-8 font-light">
+          The Assistant maps your Python to controls; you stay the Architect of
+          signal logic, risk, and deployment.
+        </p>
 
-    <!-- Feature Grid -->
-    <section class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-6 pb-24">
-        <div class="glass p-8 rounded-3xl">
-            <h3 class="text-lg font-semibold mb-2">AST Discovery & Parameter Bridge</h3>
-            <p class="text-zinc-500 text-sm leading-relaxed">LibreQuant automatically maps your Python source code into interactive UI controls in real-time. No manual UI building required.</p>
+        <div
+          class="flex flex-wrap justify-center gap-2 mb-10 text-[11px] font-medium text-[#6e6e73]"
+          aria-label="Tech stack"
+        >
+          <span class="rounded-full border border-black/8 bg-white/50 px-3 py-1">Python</span>
+          <span class="rounded-full border border-black/8 bg-white/50 px-3 py-1">Docker</span>
+          <span class="rounded-full border border-black/8 bg-white/50 px-3 py-1">AST discovery</span>
+          <span class="rounded-full border border-[#0d9488]/25 bg-[#0d9488]/5 px-3 py-1 text-[#0d9488]"
+            >&lt;100ms bridge</span
+          >
         </div>
-        <div class="glass p-8 rounded-3xl">
-            <h3 class="text-lg font-semibold mb-2">Zero-Trust Local Execution</h3>
-            <p class="text-zinc-500 text-sm leading-relaxed">Run entirely within your own Docker environment. Your alpha stays private, your keys stay local, and your execution is deterministic.</p>
+
+        <div class="flex flex-wrap justify-center gap-3">
+          <a
+            href="#quick-start"
+            class="inline-flex items-center justify-center bg-[#0d9488] text-white px-6 py-2.5 rounded-full font-medium text-sm hover:opacity-90 transition shadow-md shadow-[#0d9488]/20"
+            >Get Started (Docker)</a
+          >
+          <a
+            href="https://github.com/tompcurran/LibreQuant"
+            class="inline-flex items-center justify-center glass text-[#1d1d1f] px-6 py-2.5 rounded-full font-medium text-sm hover:bg-white/80 transition"
+            >View on GitHub</a
+          >
         </div>
-    </section>
+      </div>
 
-    <!-- The "Code-to-UI" Demo -->
-    <section class="max-w-5xl mx-auto px-6 pb-32">
-        <div class="bg-[#1D1D1F] rounded-[2.5rem] p-1 md:p-12 overflow-hidden">
-            <div class="flex flex-col md:flex-row items-center gap-12">
-                <!-- Code Side -->
-                <div class="w-full md:w-1/2 p-6 glass rounded-2xl code-font text-sm leading-relaxed overflow-x-auto">
-                    <span class="text-zinc-400"># Strategy Definition</span><br>
-                    <span class="text-blue-400">PARAMS</span> = {<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-teal-400">"lookup_period"</span>: <span class="alpha-teal font-bold">20</span>,<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-teal-400">"std_dev"</span>: <span class="text-amber-400">2.0</span><br>
-                    }<br><br>
-                    <span class="text-purple-400">def</span> <span class="text-blue-400">signal</span>(data):<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;...
-                </div>
-                
-                <!-- AST Bridge Visual -->
-                <div class="hidden md:block">
-                    <div class="h-px w-12 bg-zinc-700 relative">
-                        <div class="absolute -top-3 left-0 bg-zinc-800 text-[10px] text-zinc-400 px-2 py-0.5 rounded-full border border-zinc-700">AST Discovery</div>
-                    </div>
-                </div>
-
-                <!-- UI Side -->
-                <div class="w-full md:w-1/2 p-8 glass rounded-2xl">
-                    <div class="mb-6">
-                        <div class="flex justify-between mb-2">
-                            <label class="text-xs font-semibold text-zinc-400">LOOKUP PERIOD</label>
-                            <span class="text-xs font-bold alpha-teal">20</span>
-                        </div>
-                        <input type="range" class="w-full h-1 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-teal-600">
-                    </div>
-                    <div class="h-32 w-full bg-zinc-50 rounded-lg flex items-end p-2 space-x-1">
-                        <!-- Mock Equity Curve -->
-                        <div class="bg-teal-500/20 w-full h-[40%] rounded-sm"></div>
-                        <div class="bg-teal-500/30 w-full h-[55%] rounded-sm"></div>
-                        <div class="bg-teal-500/40 w-full h-[45%] rounded-sm"></div>
-                        <div class="bg-teal-500/60 w-full h-[70%] rounded-sm"></div>
-                        <div class="bg-teal-500 w-full h-[90%] rounded-sm"></div>
-                    </div>
-                </div>
+      <section
+        id="pillars"
+        class="max-w-5xl mx-auto px-6 pb-16 scroll-mt-24"
+        aria-labelledby="pillars-heading"
+      >
+        <h2 id="pillars-heading" class="sr-only">Design principles</h2>
+        <p
+          class="text-center text-xs font-semibold tracking-[0.12em] text-[#6e6e73] mb-8 uppercase"
+        >
+          Three pillars
+        </p>
+        <div class="grid md:grid-cols-3 gap-4 md:gap-5">
+          <div class="glass p-6 rounded-4xl text-left">
+            <div class="text-[#6e6e73] mb-4" aria-hidden="true">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 24h24M6 18h18M6 12h12" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+                <circle cx="28" cy="12" r="3" stroke="currentColor" stroke-width="1.75" />
+              </svg>
             </div>
-            <p class="text-center text-zinc-500 text-xs mt-12 opacity-50">Strategy-to-Interface Latency: <span class="text-white">0.09s</span></p>
+            <h3 class="heading-brand text-[#1d1d1f] text-base mb-2">Reactive research</h3>
+            <p class="text-sm font-light text-[#6e6e73] leading-relaxed">
+              Sculpt strategies, don’t only batch-run backtests. Parameters map to UI controls as you iterate.
+            </p>
+          </div>
+          <div class="glass p-6 rounded-4xl text-left">
+            <div class="text-[#6e6e73] mb-4" aria-hidden="true">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="8" y="10" width="20" height="18" rx="3" stroke="currentColor" stroke-width="1.75" />
+                <path d="M14 22l3 3 6-6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+            <h3 class="heading-brand text-[#1d1d1f] text-base mb-2">Zero-trust locality</h3>
+            <p class="text-sm font-light text-[#6e6e73] leading-relaxed">
+              Strategies, data, and keys stay in your Docker environment—nothing shipped to a black-box cloud.
+            </p>
+          </div>
+          <div class="glass p-6 rounded-4xl text-left">
+            <div class="text-[#6e6e73] mb-4" aria-hidden="true">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="10" cy="18" r="3" stroke="currentColor" stroke-width="1.75" />
+                <circle cx="26" cy="18" r="3" stroke="currentColor" stroke-width="1.75" />
+                <path d="M13 18h10" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+                <path d="M18 8v6M18 22v6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+              </svg>
+            </div>
+            <h3 class="heading-brand text-[#1d1d1f] text-base mb-2">Workflow ownership</h3>
+            <p class="text-sm font-light text-[#6e6e73] leading-relaxed">
+              One surface from idea → backtest → live deployment → monitoring—without losing context.
+            </p>
+          </div>
         </div>
-    </header>
+      </section>
 
-    <!-- Footer -->
-    <footer class="border-t border-zinc-100 py-12 px-6 text-center text-xs text-zinc-400">
-        <p>© 2026 LibreQuant Project. Released under MIT License.</p>
-        <div class="mt-4 space-x-6">
-            <a href="#" class="hover:text-zinc-900 transition-colors">Documentation</a>
-            <a href="#" class="hover:text-zinc-900 transition-colors">Discord</a>
-            <a href="#" class="hover:text-zinc-900 transition-colors">Contribute</a>
+      <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-6 px-6 pb-20">
+        <div class="glass p-8 rounded-4xl">
+          <div class="mb-5 text-[#6e6e73]" aria-hidden="true">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 12h10v16H8V12z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" />
+              <path d="M22 20c0-5 4-9 9-9" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+              <circle cx="31" cy="20" r="3" stroke="currentColor" stroke-width="1.75" />
+              <path d="M12 28l8-8 4 4 6-6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+          <h3 class="heading-brand text-[#1d1d1f] text-lg mb-2">
+            AST Discovery &amp; Parameter Bridge
+          </h3>
+          <p class="text-sm font-light text-[#6e6e73] leading-relaxed">
+            Discover tunable parameters from your strategy source; wire them to
+            sliders and controls without hand-built glue code.
+          </p>
         </div>
+        <div class="glass p-8 rounded-4xl">
+          <div class="mb-5 text-[#6e6e73]" aria-hidden="true">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="8" y="10" width="24" height="20" rx="3" stroke="currentColor" stroke-width="1.75" />
+              <path d="M14 18h4M22 18h4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+              <path d="M12 26h16" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+              <circle cx="20" cy="30" r="2" stroke="currentColor" stroke-width="1.5" />
+            </svg>
+          </div>
+          <h3 class="heading-brand text-[#1d1d1f] text-lg mb-2">
+            Zero-Trust Local Execution
+          </h3>
+          <p class="text-sm font-light text-[#6e6e73] leading-relaxed">
+            Stationarity checks and orders stay on your machine: local broker
+            adapters, no cloud middleman, keys under your control.
+          </p>
+        </div>
+      </div>
+
+      <div class="max-w-4xl mx-auto px-6 pb-16">
+        <h2
+          class="text-center text-xs font-semibold tracking-[0.12em] text-[#6e6e73] mb-8 uppercase"
+        >
+          Code to Interface
+        </h2>
+        <div
+          class="bg-[#1c1c1e] rounded-4xl p-8 md:p-12 shadow-xl shadow-[#1d1d1f]/10 relative overflow-hidden"
+        >
+          <div class="flex flex-col md:flex-row gap-10 md:gap-12 items-center">
+            <div
+              class="w-full md:w-1/2 font-mono-code text-[13px] leading-relaxed text-[#d1d1d6] text-left"
+            >
+              <span class="text-[#6e6e73]">1</span> PARAMS = {<br />
+              <span class="text-[#6e6e73]">2</span> &nbsp;&nbsp;&nbsp;&nbsp;<span
+                class="text-[#0d9488]"
+                >"lookup"</span
+              >: <span class="text-[#0d9488]">20</span><br />
+              <span class="text-[#6e6e73]">3</span> }<br />
+              <span class="text-[#6e6e73]">4</span> <br />
+              <span class="text-[#6e6e73]">5</span> signal(data)
+            </div>
+
+            <div
+              class="hidden md:flex items-center justify-center shrink-0 bg-[#2c2c2e] px-3 py-1.5 rounded-full text-[10px] font-medium text-[#6e6e73] border border-white/10"
+            >
+              AST → UI (0.03s)
+            </div>
+
+            <div class="w-full md:w-1/2 glass p-6 rounded-[1.25rem]">
+              <div
+                class="flex justify-between text-[11px] font-semibold text-[#6e6e73] mb-2"
+              >
+                <span>Lookup Period (20)</span>
+                <span class="text-[#0d9488]">Equity</span>
+              </div>
+              <div class="h-1 w-full bg-[#1d1d1f]/10 rounded-full mb-6 overflow-hidden">
+                <div class="w-1/2 h-full bg-[#0d9488] rounded-full"></div>
+              </div>
+              <div class="h-20 w-full flex items-end gap-1">
+                <div class="w-full bg-[#0d9488]/10 h-1/2 rounded-t-sm"></div>
+                <div class="w-full bg-[#0d9488]/20 h-2/3 rounded-t-sm"></div>
+                <div class="w-full bg-[#0d9488]/40 h-1/3 rounded-t-sm"></div>
+                <div class="w-full bg-[#0d9488]/60 h-3/4 rounded-t-sm"></div>
+                <div class="w-full bg-[#0d9488] h-full rounded-t-sm"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <section
+        id="quick-start"
+        class="max-w-3xl mx-auto px-6 pb-20 scroll-mt-24"
+        aria-labelledby="quick-start-heading"
+      >
+        <h2
+          id="quick-start-heading"
+          class="text-center text-xs font-semibold tracking-[0.12em] text-[#6e6e73] mb-6 uppercase"
+        >
+          Quick start
+        </h2>
+        <div class="glass rounded-4xl p-6 md:p-8">
+          <p class="text-sm font-light text-[#6e6e73] mb-4">
+            Fastest path: clone the repo and bring up the workbench with Docker Compose.
+          </p>
+          <pre
+            class="font-mono-code text-[12px] md:text-[13px] leading-relaxed text-[#1d1d1f] bg-[#1d1d1f]/4 rounded-2xl p-4 overflow-x-auto border border-black/6"
+          ><code># Clone
+git clone https://github.com/tompcurran/LibreQuant.git
+cd LibreQuant
+
+# Launch
+docker compose up -d</code></pre>
+          <p class="mt-4 text-xs text-[#6e6e73]">
+            See the repository README for prerequisites, env files, and broker adapter notes.
+          </p>
+        </div>
+      </section>
+
+      <section
+        id="faq"
+        class="max-w-3xl mx-auto px-6 pb-24 scroll-mt-24"
+        aria-labelledby="faq-heading"
+      >
+        <h2
+          id="faq-heading"
+          class="text-center text-xs font-semibold tracking-[0.12em] text-[#6e6e73] mb-8 uppercase"
+        >
+          FAQ
+        </h2>
+        <dl class="space-y-4">
+          <div class="glass rounded-3xl px-5 py-4">
+            <dt class="heading-brand text-[#1d1d1f] text-sm mb-1">
+              How is this different from Jupyter + scripts?
+            </dt>
+            <dd class="text-sm font-light text-[#6e6e73] leading-relaxed">
+              Jupyter is great for exploration; LibreQuant adds AST discovery so parameters and UI stay in sync with your strategy file—fewer ad-hoc widgets and copy-pasted constants.
+            </dd>
+          </div>
+          <div class="glass rounded-3xl px-5 py-4">
+            <dt class="heading-brand text-[#1d1d1f] text-sm mb-1">
+              Where does execution run?
+            </dt>
+            <dd class="text-sm font-light text-[#6e6e73] leading-relaxed">
+              In your local Docker environment by default. You keep custody of data and credentials; the workbench is the Assistant, not a hosted black box.
+            </dd>
+          </div>
+          <div class="glass rounded-3xl px-5 py-4">
+            <dt class="heading-brand text-[#1d1d1f] text-sm mb-1">
+              What about drawdowns and bad backtests?
+            </dt>
+            <dd class="text-sm font-light text-[#6e6e73] leading-relaxed">
+              Risk is yours to model. The UI can surface equity and stress metrics; strategy validity still depends on your assumptions, stationarity checks, and out-of-sample discipline—<span class="text-[#e11d48] font-medium">never</span> treat a green curve as a guarantee.
+            </dd>
+          </div>
+        </dl>
+      </section>
+    </main>
+
+    <footer class="border-t border-black/6 bg-[#f9f9fb]/90">
+      <div class="max-w-3xl mx-auto px-6 py-10 text-center text-[#6e6e73] text-sm font-light">
+        <p class="mb-3">
+          © 2026 LibreQuant · MIT License
+        </p>
+        <p class="flex flex-wrap justify-center gap-x-3 gap-y-1">
+          <a
+            href="https://github.com/tompcurran/LibreQuant"
+            class="text-[#1d1d1f] hover:text-[#0d9488] transition"
+            >GitHub</a
+          >
+          <span class="text-[#6e6e73]/50" aria-hidden="true">·</span>
+          <a
+            href="https://github.com/tompcurran/LibreQuant#readme"
+            class="text-[#1d1d1f] hover:text-[#0d9488] transition"
+            >Documentation</a
+          >
+          <span class="text-[#6e6e73]/50" aria-hidden="true">·</span>
+          <a
+            href="https://github.com/tompcurran/LibreQuant/discussions"
+            class="text-[#1d1d1f] hover:text-[#0d9488] transition"
+            >Discussions</a
+          >
+        </p>
+      </div>
     </footer>
-
-</body>
+  </body>
 </html>
