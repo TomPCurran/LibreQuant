@@ -1,26 +1,93 @@
 @import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@config "../tailwind.config.ts";
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Light Mode Variables */
+    --background: #f9f9fb;
+    --foreground: #1d1d1f;
+    --grid-pattern: radial-gradient(
+      rgba(110, 110, 115, 0.12) 1px,
+      transparent 1px
+    );
+
+    --text-primary: 240 5.9% 10%;
+    --text-secondary: 240 3.8% 46.1%;
+    --alpha: 173 80% 32%;
+    --risk: 343 79% 50%;
+  }
+
+  .dark {
+    /* Dark Mode Variables (Deep Zinc / Obsidian) */
+    --background: #09090b;
+    --foreground: #fafafa;
+    --grid-pattern: radial-gradient(
+      rgba(255, 255, 255, 0.05) 1px,
+      transparent 1px
+    );
+
+    --text-primary: 0 0% 98%;
+    --text-secondary: 240 5% 64.9%;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* color-scheme: scrollbars and form controls match theme */
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased font-sans bg-grid-pattern transition-colors duration-500;
+    background-size: 40px 40px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Dynamic Glass Component */
+  .glass {
+    @apply backdrop-blur-[20px] border transition-all duration-300 shadow-sm;
+    @apply bg-white/60 border-white/45 shadow-zinc-950/5;
+  }
+
+  .dark .glass {
+    @apply bg-zinc-900/60 border-white/10 shadow-black/20;
+  }
+
+  .font-mono-code {
+    font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  }
+
+  .heading-brand {
+    @apply font-semibold tracking-tight;
+    letter-spacing: -0.011em;
+  }
+
+  /* One-shot variant of soft-pulse (theme keyframes) for run feedback */
+  @keyframes soft-pulse-once {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.01);
+    }
+  }
+
+  .animate-soft-pulse-once {
+    animation: soft-pulse-once 3s cubic-bezier(0.4, 0, 0.6, 1) 1;
+  }
 }
