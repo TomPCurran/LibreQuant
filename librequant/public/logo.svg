@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 32" fill="none">
+  <rect width="32" height="32" rx="8" fill="currentColor" opacity="0.12"/>
+  <path d="M8 22V10l4 6 4-6v12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="40" y="21" fill="currentColor" font-family="system-ui, sans-serif" font-size="14" font-weight="600" letter-spacing="-0.02em">LibreQuant</text>
+</svg>
