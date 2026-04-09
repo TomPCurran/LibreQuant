@@ -1,6 +1,32 @@
 @import "tailwindcss";
 @config "../tailwind.config.ts";
 
+html {
+  scroll-behavior: smooth;
+}
+
+/* design_document.md §8 — skip to main content */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0.75rem;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  background: hsl(var(--alpha));
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity 150ms ease;
+}
+
+.skip-link:focus-visible {
+  left: 0.75rem;
+  outline: 2px solid hsl(var(--alpha));
+  outline-offset: 2px;
+}
+
 :root {
   --background: 0 0% 100%;
   --foreground: 240 6% 10%;
@@ -9,6 +35,10 @@
   --alpha: 173 80% 36%;
   --risk: 347 77% 50%;
   --border-subtle: 240 6% 90%;
+  /* Notebook cell frame: slightly darker than page (light) */
+  --cell-surface: 240 6% 96%;
+  /* Code editor: same as page canvas in light */
+  --editor-surface: 0 0% 100%;
 }
 
 .dark {
@@ -17,6 +47,9 @@
   --text-primary: 0 0% 96%;
   --text-secondary: 240 5% 64%;
   --border-subtle: 240 4% 18%;
+  /* Cell chrome between canvas and editor; editor is lightest (highest L%) */
+  --cell-surface: 240 6% 10%;
+  --editor-surface: 240 5% 18%;
 }
 
 @theme inline {

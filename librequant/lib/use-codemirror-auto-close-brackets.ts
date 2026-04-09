@@ -2,6 +2,7 @@
 
 import { useEffect, type RefObject } from "react";
 import { patchAutoCloseBracketsInContainer } from "@/lib/codemirror-auto-close-brackets";
+import { observeMutationsRaf } from "@/lib/observe-mutations-raf";
 
 /**
  * Enables CodeMirror auto-closing brackets/quotes for all cell editors under `containerRef`.
@@ -16,10 +17,12 @@ export function useCodemirrorAutoCloseBrackets(
     if (!root) return;
 
     patchAutoCloseBracketsInContainer(root);
-    const obs = new MutationObserver(() => {
-      patchAutoCloseBracketsInContainer(root);
-    });
-    obs.observe(root, { childList: true, subtree: true });
-    return () => obs.disconnect();
+    return observeMutationsRaf(
+      root,
+      () => {
+        patchAutoCloseBracketsInContainer(root);
+      },
+      { childList: true, subtree: true },
+    );
   }, [containerRef, enabled]);
 }

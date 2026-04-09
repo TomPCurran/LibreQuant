@@ -1,12 +1,33 @@
+/*
+ * Root wrapper: same surface as body (bg-background + grid). Jupyter’s theme CSS
+ * sets --jp-layout-color* on :root to gray-blues; we paint the canvas here and
+ * force direct theme wrappers transparent so nothing sits “on top” lighter.
+ */
+.lq-workbench-notebook-root {
+  background-color: hsl(var(--background));
+  background-image: radial-gradient(
+    hsl(var(--alpha) / 0.12) 1px,
+    transparent 0
+  );
+  background-size: 24px 24px;
+}
+
+.dark .lq-workbench-notebook-root {
+  background-image: radial-gradient(
+    hsl(var(--alpha) / 0.18) 1px,
+    transparent 0
+  );
+}
+
 /* Map JupyterLab CSS variables to LibreQuant design tokens (light/dark follow html.dark + :root). */
 .libre-notebook-host {
-  /* No separate “canvas” panel — blend with page bg-grid */
+  /* Match page chrome; Jupyter 4 uses rgb(from var(--jp-layout-color1) …) — real colors required */
   background: transparent;
-  --jp-layout-color0: var(--background);
-  --jp-layout-color1: var(--background);
-  --jp-layout-color2: hsl(var(--foreground) / 0.06);
-  --jp-layout-color3: hsl(var(--foreground) / 0.1);
-  --jp-layout-color4: hsl(var(--foreground) / 0.14);
+  --jp-layout-color0: hsl(var(--background));
+  --jp-layout-color1: hsl(var(--background));
+  --jp-layout-color2: hsl(var(--foreground) / 0.1);
+  --jp-layout-color3: hsl(var(--foreground) / 0.14);
+  --jp-layout-color4: hsl(var(--foreground) / 0.2);
   --jp-border-color0: hsl(var(--foreground) / 0.12);
   --jp-border-color1: hsl(var(--foreground) / 0.16);
   --jp-border-color2: hsl(var(--foreground) / 0.22);
@@ -21,14 +42,14 @@
   --jp-brand-color3: hsl(var(--alpha) / 0.65);
   --jp-accent-color0: hsl(var(--alpha));
   --jp-accent-color1: hsl(var(--alpha) / 0.9);
-  --jp-cell-editor-background: hsl(var(--foreground) / 0.04);
-  --jp-cell-editor-border-color: hsl(var(--foreground) / 0.12);
-  --jp-cell-editor-active-background: hsl(var(--foreground) / 0.05);
+  --jp-cell-editor-background: hsl(var(--editor-surface));
+  --jp-cell-editor-border-color: hsl(var(--foreground) / 0.1);
+  --jp-cell-editor-active-background: hsl(var(--editor-surface));
   --jp-cell-editor-active-border-color: hsl(var(--alpha) / 0.45);
   --jp-cell-prompt-not-active-font-color: hsl(var(--foreground) / 0.45);
   --jp-cell-inprompt-font-color: hsl(var(--alpha));
   --jp-cell-outprompt-font-color: hsl(var(--foreground) / 0.55);
-  --jp-editor-background: hsl(var(--foreground) / 0.04);
+  --jp-editor-background: hsl(var(--editor-surface));
   --jp-rendermime-error-background: hsl(var(--risk) / 0.12);
   --jp-mirror-editor-keyword-color: hsl(var(--alpha));
   --jp-mirror-editor-atom-color: hsl(210 90% 55%);
@@ -67,10 +88,40 @@
   --jp-content-line-height: 1.55;
 }
 
+/* Keep notebook chrome transparent so .lq-workbench-notebook-root grid shows through */
 .libre-notebook-host .jp-Notebook,
 .libre-notebook-host .jp-NotebookPanel,
-.libre-notebook-host .jp-NotebookPanel-notebook {
+.libre-notebook-host .jp-NotebookPanel-notebook,
+.libre-notebook-host .jp-NotebookPanel-scroller {
   background: transparent !important;
+}
+
+/* Full-width notebook — no max-width column (reads as one canvas with the shell) */
+.libre-notebook-host .jp-NotebookPanel,
+.libre-notebook-host .jp-WindowedPanel-outer {
+  max-width: none !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  background: transparent !important;
+}
+
+.libre-notebook-host .jp-WindowedPanel-inner,
+.libre-notebook-host [class*="jp-WindowedPanel"] {
+  background: transparent !important;
+}
+
+.libre-notebook-host .cm-editor,
+.libre-notebook-host .cm-scroller,
+.libre-notebook-host .cm-gutters {
+  background-color: hsl(var(--editor-surface)) !important;
+}
+
+.libre-notebook-host .jp-OutputArea,
+.libre-notebook-host .jp-OutputArea-child,
+.libre-notebook-host .jp-OutputArea-output,
+.libre-notebook-host .jp-RenderedHTMLCommon {
+  background-color: hsl(var(--cell-surface)) !important;
 }
 
 /*
@@ -86,9 +137,14 @@
 
 .libre-notebook-host .jp-Cell {
   border-radius: 12px;
-  border: 1px solid hsl(var(--foreground) / 0.1) !important;
-  background: hsl(var(--foreground) / 0.04) !important;
+  border: 1px solid hsl(var(--foreground) / 0.08) !important;
+  background: hsl(var(--cell-surface)) !important;
   margin-bottom: 10px;
+}
+
+.libre-notebook-host .jp-Cell-inputWrapper,
+.libre-notebook-host .jp-Cell-outputWrapper {
+  background: transparent !important;
 }
 
 .libre-notebook-host .jp-InputPrompt {
@@ -124,4 +180,9 @@
 
 .libre-notebook-host .jp-Toolbar {
   display: none !important;
+}
+
+/* Cell sidebar: datalayer hides gutter unless the cell is active — show for every cell */
+.libre-notebook-host .dla-Box-Notebook .jp-Cell .dla-CellSidebar-Container {
+  display: flex !important;
 }

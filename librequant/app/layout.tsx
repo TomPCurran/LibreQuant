@@ -26,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+        className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background bg-grid-pattern text-foreground`}
       >
         <ThemeProvider
           attribute="class"
@@ -34,6 +34,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <a href="#main" className="skip-link">
+            Skip to content
+          </a>
           {children}
         </ThemeProvider>
       </body>

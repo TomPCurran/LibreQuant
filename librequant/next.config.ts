@@ -27,6 +27,9 @@ const csp = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
+  },
   // JupyterLab / @datalayer/jupyter-react rely on Yjs + kernel comms; React Strict Mode's
   // dev-only double mount disposes models while globals still reference the old Y.Doc,
   // which spams Yjs errors, "Disposed" rejections, and "Comm not found" noise.

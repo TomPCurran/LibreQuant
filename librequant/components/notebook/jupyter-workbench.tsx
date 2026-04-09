@@ -6,8 +6,8 @@ import {
   Notebook,
   useJupyterReactStore,
 } from "@datalayer/jupyter-react";
+import { CellSidebarExtension } from "@datalayer/jupyter-react/notebook";
 import "@datalayer/jupyter-react/style";
-import type { INotebookContent } from "@jupyterlab/nbformat";
 import { useTheme } from "next-themes";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { getPublicJupyterConfig } from "@/lib/env";
@@ -15,48 +15,26 @@ import {
   ensureJupyterDevNoiseInstalledBeforeNotebook,
   teardownJupyterDevNoiseFromWorkbench,
 } from "@/lib/jupyter-dev-noise";
+import { initialNotebook } from "@/lib/initial-notebook";
 import { loadJupyterLabPackageStylesOnce } from "@/lib/jupyter-lab-styles";
 import { LIBRE_NOTEBOOK_ID } from "@/lib/notebook-constants";
 import { useNotebookLocalPersistence } from "@/lib/use-notebook-local-persistence";
 import { useCodemirrorAutoCloseBrackets } from "@/lib/use-codemirror-auto-close-brackets";
-import { PackageSearchBar } from "@/components/package-search/package-search-bar";
+import { PackageSearchModal } from "@/components/package-search/package-search-modal";
+import { JupyterConnectingPanel } from "./jupyter-connecting-panel";
 import { useLibreJupyterSession } from "./jupyter-provider";
 import { JupyterThemeLink } from "./jupyter-theme-link";
 import "@/styles/jupyter-bridge.css";
+import { LibreCellSidebar } from "./libre-cell-sidebar";
 import { LibreNotebookToolbar } from "./libre-notebook-toolbar";
 import { OutputSanitizer } from "./output-sanitizer";
 
-const initialNotebook: INotebookContent = {
-  nbformat: 4,
-  nbformat_minor: 5,
-  metadata: {
-    kernelspec: {
-      display_name: "Python 3",
-      language: "python",
-      name: "python3",
-    },
-    language_info: {
-      name: "python",
-    },
-  },
-  cells: [
-    {
-      cell_type: "code",
-      execution_count: null,
-      metadata: {},
-      outputs: [],
-      source: [
-        'print("LibreQuant Nexus")\n',
-        "import matplotlib\n",
-        "matplotlib.use('module://matplotlib_inline.backend_inline')\n",
-        "import matplotlib.pyplot as plt\n",
-        "plt.plot([1, 2, 3], [2, 3, 1])\n",
-        "plt.title('Sample')\n",
-        "plt.show()\n",
-      ],
-    },
-  ],
-};
+const NOTEBOOK_CELL_EXTENSIONS = [
+  new CellSidebarExtension({
+    factory: LibreCellSidebar,
+    sidebarWidth: 48,
+  }),
+];
 
 export function JupyterWorkbench() {
   const { baseUrl } = getPublicJupyterConfig();
@@ -98,9 +76,8 @@ export function JupyterWorkbench() {
 
   if (jupyter.kernelIsLoading || !jupyter.serviceManager || !jupyter.kernel) {
     return (
-      <div className="flex min-h-[420px] items-center justify-center rounded-xl border border-foreground/10 bg-background/50 px-4 text-center text-sm text-text-secondary">
-        Connecting to Jupyter at {baseUrl}… Ensure Docker Jupyter is running and
-        tokens match <code className="font-mono-code text-xs">.env.local</code>.
+      <div className="lq-workbench-notebook-root w-full min-h-[min(72vh,840px)]">
+        <JupyterConnectingPanel baseUrl={baseUrl} />
       </div>
     );
   }
@@ -109,24 +86,29 @@ export function JupyterWorkbench() {
   ensureJupyterDevNoiseInstalledBeforeNotebook();
 
   return (
-    <JupyterReactTheme loadJupyterLabCss={false}>
-      <JupyterThemeLink />
-      <PackageSearchBar notebookId={LIBRE_NOTEBOOK_ID} />
-      <OutputSanitizer containerRef={hostRef}>
-        <div ref={hostRef} className="libre-notebook-host w-full">
-          <Notebook
-            key={notebookMountKey}
-            id={LIBRE_NOTEBOOK_ID}
-            serviceManager={jupyter.serviceManager}
-            kernel={jupyter.kernel}
-            startDefaultKernel={false}
-            nbformat={nbformat}
-            height="min(72vh, 840px)"
-            maxHeight="min(72vh, 840px)"
-            Toolbar={LibreNotebookToolbar}
-          />
-        </div>
-      </OutputSanitizer>
-    </JupyterReactTheme>
+    <div className="lq-workbench-notebook-root w-full min-h-[min(72vh,840px)]">
+      {/* Primer BaseStyles defaults to var(--bgColor-default); that paints a second canvas over .lq-workbench-notebook-root */}
+      <JupyterReactTheme loadJupyterLabCss={false} backgroundColor="transparent">
+        <JupyterThemeLink />
+        <PackageSearchModal notebookId={LIBRE_NOTEBOOK_ID} />
+        <OutputSanitizer containerRef={hostRef}>
+          <div ref={hostRef} className="libre-notebook-host w-full">
+            <Notebook
+              key={notebookMountKey}
+              id={LIBRE_NOTEBOOK_ID}
+              serviceManager={jupyter.serviceManager}
+              kernel={jupyter.kernel}
+              startDefaultKernel={false}
+              nbformat={nbformat}
+              height="min(72vh, 840px)"
+              maxHeight="min(72vh, 840px)"
+              cellSidebarMargin={52}
+              extensions={NOTEBOOK_CELL_EXTENSIONS}
+              Toolbar={LibreNotebookToolbar}
+            />
+          </div>
+        </OutputSanitizer>
+      </JupyterReactTheme>
+    </div>
   );
 }

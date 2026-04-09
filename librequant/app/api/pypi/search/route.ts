@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
+import type { PyPIProjectSummary } from "@/lib/types/pypi";
 
 const USER_AGENT = "LibreQuant/0.1 (+https://github.com/)";
-
-export type PyPIProjectSummary = {
-  name: string;
-  summary: string;
-  version?: string;
-};
 
 /**
  * Best-effort PyPI search: parses the public search HTML and enriches hits via the JSON API.

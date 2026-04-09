@@ -23,8 +23,10 @@ export function useNotebookLocalPersistence(
   useEffect(() => {
     const stored = loadStoredNotebookContent();
     if (stored) {
-      setNbformat(stored);
-      setNotebookMountKey((k) => k + 1);
+      queueMicrotask(() => {
+        setNbformat(stored);
+        setNotebookMountKey((k) => k + 1);
+      });
     }
   }, []);
 

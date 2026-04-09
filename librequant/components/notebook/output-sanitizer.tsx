@@ -6,6 +6,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
+import { observeMutationsRaf } from "@/lib/observe-mutations-raf";
 
 function sanitizeHtml(html: string) {
   return DOMPurify.sanitize(html, {
@@ -46,12 +47,13 @@ export function OutputSanitizer({
 
     sanitizeSubtree(root);
 
-    const observer = new MutationObserver(() => {
-      sanitizeSubtree(root);
-    });
-
-    observer.observe(root, { childList: true, subtree: true });
-    return () => observer.disconnect();
+    return observeMutationsRaf(
+      root,
+      () => {
+        sanitizeSubtree(root);
+      },
+      { childList: true, subtree: true },
+    );
   }, [containerRef]);
 
   return <>{children}</>;

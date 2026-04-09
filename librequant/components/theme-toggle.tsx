@@ -21,9 +21,9 @@ export function ThemeToggle() {
         aria-label="Toggle color theme"
         aria-disabled="true"
         tabIndex={-1}
-        className="pointer-events-none inline-flex h-9 w-9 items-center justify-center rounded-xl border border-foreground/10 bg-background/80 text-foreground opacity-70 transition hover:border-brand-teal/40 hover:text-brand-teal"
+        className="pointer-events-none inline-flex h-11 w-11 items-center justify-center rounded-full border border-foreground/10 bg-background/80 text-foreground opacity-70"
       >
-        <span className="size-4 rounded-sm bg-foreground/10" aria-hidden />
+        <span className="size-4 rounded-full bg-foreground/10" aria-hidden />
       </button>
     );
   }
@@ -34,7 +34,7 @@ export function ThemeToggle() {
     <button
       type="button"
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-      className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-foreground/10 bg-background/80 text-foreground transition hover:border-brand-teal/40 hover:text-brand-teal"
+      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-foreground/10 bg-background/80 text-foreground transition hover:border-alpha/40 hover:text-alpha focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alpha/35"
       onClick={() => setTheme(isDark ? "light" : "dark")}
     >
       {isDark ? (

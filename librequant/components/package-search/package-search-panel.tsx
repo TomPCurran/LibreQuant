@@ -1,23 +1,24 @@
 "use client";
 
 import "@/lib/ensure-webpack-public-path";
-import { useNotebookStore } from "@datalayer/jupyter-react";
+import { notebookStore } from "@datalayer/jupyter-react";
 import { Loader2, Package, Search } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { isSafePyPIProjectName } from "@/lib/pypi-name";
-
-export type PyPIProjectSummary = {
-  name: string;
-  summary: string;
-  version?: string;
-};
+import type { PyPIProjectSummary } from "@/lib/types/pypi";
 
 type Props = {
   notebookId: string;
+  className?: string;
+  /** Focus search input on mount (e.g. when modal opens) */
+  autoFocus?: boolean;
 };
 
-export function PackageSearchBar({ notebookId }: Props) {
-  const notebookStore = useNotebookStore();
+export function PackageSearchPanel({
+  notebookId,
+  className = "",
+  autoFocus = false,
+}: Props) {
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -32,25 +33,34 @@ export function PackageSearchBar({ notebookId }: Props) {
   );
 
   useEffect(() => {
+    if (autoFocus && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [autoFocus]);
+
+  useEffect(() => {
     if (query.trim().length < 2) {
       setResults([]);
       setLoading(false);
       return;
     }
-    let cancelled = false;
+
+    const ac = new AbortController();
     const t = window.setTimeout(() => {
       void (async () => {
+        const { signal } = ac;
         setLoading(true);
         setMessage(null);
         try {
           const res = await fetch(
             `/api/pypi/search?q=${encodeURIComponent(query.trim())}`,
+            { signal },
           );
           const data = (await res.json()) as {
             results?: PyPIProjectSummary[];
             error?: string;
           };
-          if (cancelled) return;
+          if (signal.aborted) return;
           if (!res.ok) {
             setResults([]);
             setMessage({ kind: "err", text: data.error ?? "Search failed" });
@@ -58,19 +68,20 @@ export function PackageSearchBar({ notebookId }: Props) {
           }
           setResults(data.results ?? []);
           setOpen(true);
-        } catch {
-          if (!cancelled) {
-            setResults([]);
-            setMessage({ kind: "err", text: "Could not reach package search." });
+        } catch (e) {
+          if (signal.aborted || (e instanceof DOMException && e.name === "AbortError")) {
+            return;
           }
+          setResults([]);
+          setMessage({ kind: "err", text: "Could not reach package search." });
         } finally {
-          if (!cancelled) setLoading(false);
+          if (!signal.aborted) setLoading(false);
         }
       })();
     }, 350);
     return () => {
-      cancelled = true;
       window.clearTimeout(t);
+      ac.abort();
     };
   }, [query]);
 
@@ -91,7 +102,9 @@ export function PackageSearchBar({ notebookId }: Props) {
         setMessage({ kind: "err", text: "Invalid package name." });
         return;
       }
-      const adapter = notebookStore.selectNotebookAdapter(notebookId);
+      const adapter = notebookStore
+        .getState()
+        .selectNotebookAdapter(notebookId);
       if (!adapter) {
         setMessage({ kind: "err", text: "Notebook is not ready yet." });
         return;
@@ -135,17 +148,14 @@ export function PackageSearchBar({ notebookId }: Props) {
         setInstalling(null);
       }
     },
-    [notebookId, notebookStore],
+    [notebookId],
   );
 
   return (
-    <div
-      ref={wrapRef}
-      className="mb-4 rounded-xl border border-foreground/10 bg-background/40 px-3 py-2.5 backdrop-blur-sm"
-    >
-      <div className="flex items-start gap-2">
+    <div ref={wrapRef} className={className}>
+      <div className="flex items-start gap-3">
         <Package
-          className="mt-0.5 size-4 shrink-0 text-brand-teal/90"
+          className="mt-1 size-4 shrink-0 text-text-secondary"
           aria-hidden
         />
         <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -154,7 +164,7 @@ export function PackageSearchBar({ notebookId }: Props) {
           </label>
           <div className="relative">
             <Search
-              className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-text-secondary"
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-secondary"
               aria-hidden
             />
             <input
@@ -173,18 +183,18 @@ export function PackageSearchBar({ notebookId }: Props) {
               onFocus={() => {
                 if (results.length > 0) setOpen(true);
               }}
-              className="w-full rounded-lg border border-foreground/10 bg-background/80 py-2 pl-9 pr-10 text-sm text-foreground outline-none ring-brand-teal/30 placeholder:text-text-secondary focus:border-brand-teal/40 focus:ring-2"
+              className="w-full rounded-full border border-foreground/10 bg-background py-2.5 pl-10 pr-11 text-sm font-light text-foreground outline-none transition placeholder:text-text-secondary focus-visible:border-alpha/40 focus-visible:ring-2 focus-visible:ring-alpha/25"
             />
             {loading ? (
               <Loader2
-                className="absolute right-2.5 top-1/2 size-4 -translate-y-1/2 animate-spin text-text-secondary"
+                className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-text-secondary"
                 aria-hidden
               />
             ) : null}
           </div>
 
           {open && results.length > 0 ? (
-            <ul className="max-h-72 overflow-auto rounded-lg border border-foreground/10 bg-background py-1 shadow-sm">
+            <ul className="max-h-72 overflow-auto rounded-2xl border border-black/6 bg-background py-1 dark:border-white/10">
               {results.map((p) => (
                 <li
                   key={p.name}
@@ -208,7 +218,7 @@ export function PackageSearchBar({ notebookId }: Props) {
                     </div>
                     <button
                       type="button"
-                      className="shrink-0 self-start rounded-lg border border-brand-teal/35 bg-brand-teal/10 px-2.5 py-1.5 text-xs font-medium text-brand-teal transition hover:bg-brand-teal/15 disabled:opacity-50 sm:self-center"
+                      className="shrink-0 self-start rounded-full bg-alpha px-4 py-2 text-xs font-medium text-white shadow-md shadow-alpha/20 transition hover:opacity-90 disabled:opacity-50 sm:self-center"
                       disabled={installing !== null}
                       onClick={() => void install(p.name)}
                     >
@@ -226,17 +236,17 @@ export function PackageSearchBar({ notebookId }: Props) {
 
           {message ? (
             <p
-              className={`text-xs ${
-                message.kind === "ok" ? "text-brand-teal" : "text-brand-rose"
+              className={`text-xs font-light ${
+                message.kind === "ok" ? "text-alpha" : "text-risk"
               }`}
               role="status"
             >
               {message.text}
             </p>
           ) : (
-            <p className="text-[11px] leading-snug text-text-secondary">
+            <p className="text-xs font-light leading-relaxed text-text-secondary">
               Installs run in the Docker Jupyter environment via{" "}
-              <code className="font-mono-code text-[10px] text-foreground/80">
+              <code className="font-mono-code text-[12px] text-text-primary">
                 %pip install
               </code>
               . Large packages can take a minute.
