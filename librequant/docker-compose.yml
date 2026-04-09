@@ -1,0 +1,15 @@
+services:
+  jupyter:
+    image: quay.io/jupyter/scipy-notebook:latest
+    ports:
+      - "8888:8888"
+    command:
+      - start-notebook.sh
+      # Jupyter Server 2+: use IdentityProvider.token (ServerApp.token is deprecated)
+      - --IdentityProvider.token=devtoken
+      # Browser app on :3000 calling Jupyter on :8888 is cross-origin; token clients need this for POST
+      - --ServerApp.disable_check_xsrf=True
+      # allow_origin is a single value; use a pattern so both localhost and 127.0.0.1 Next dev URLs work
+      - "--ServerApp.allow_origin_pat=^http://(localhost|127\\.0\\.0\\.1):3000$"
+      # @jupyterlab/services uses fetch(..., { credentials: 'include' }); browsers require this for CORS
+      - --ServerApp.allow_credentials=True

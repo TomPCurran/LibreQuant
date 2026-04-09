@@ -1,0 +1,188 @@
+/*
+ * Root wrapper: same surface as body (bg-background + grid). Jupyter’s theme CSS
+ * sets --jp-layout-color* on :root to gray-blues; we paint the canvas here and
+ * force direct theme wrappers transparent so nothing sits “on top” lighter.
+ */
+.lq-workbench-notebook-root {
+  background-color: hsl(var(--background));
+  background-image: radial-gradient(
+    hsl(var(--alpha) / 0.12) 1px,
+    transparent 0
+  );
+  background-size: 24px 24px;
+}
+
+.dark .lq-workbench-notebook-root {
+  background-image: radial-gradient(
+    hsl(var(--alpha) / 0.18) 1px,
+    transparent 0
+  );
+}
+
+/* Map JupyterLab CSS variables to LibreQuant design tokens (light/dark follow html.dark + :root). */
+.libre-notebook-host {
+  /* Match page chrome; Jupyter 4 uses rgb(from var(--jp-layout-color1) …) — real colors required */
+  background: transparent;
+  --jp-layout-color0: hsl(var(--background));
+  --jp-layout-color1: hsl(var(--background));
+  --jp-layout-color2: hsl(var(--foreground) / 0.1);
+  --jp-layout-color3: hsl(var(--foreground) / 0.14);
+  --jp-layout-color4: hsl(var(--foreground) / 0.2);
+  --jp-border-color0: hsl(var(--foreground) / 0.12);
+  --jp-border-color1: hsl(var(--foreground) / 0.16);
+  --jp-border-color2: hsl(var(--foreground) / 0.22);
+  --jp-border-color3: hsl(var(--foreground) / 0.28);
+  --jp-inverse-layout-color0: var(--foreground);
+  --jp-inverse-layout-color1: var(--foreground);
+  --jp-inverse-layout-color2: hsl(var(--foreground) / 0.85);
+  --jp-inverse-layout-color3: hsl(var(--foreground) / 0.7);
+  --jp-brand-color0: hsl(var(--alpha));
+  --jp-brand-color1: hsl(var(--alpha));
+  --jp-brand-color2: hsl(var(--alpha) / 0.85);
+  --jp-brand-color3: hsl(var(--alpha) / 0.65);
+  --jp-accent-color0: hsl(var(--alpha));
+  --jp-accent-color1: hsl(var(--alpha) / 0.9);
+  --jp-cell-editor-background: hsl(var(--editor-surface));
+  --jp-cell-editor-border-color: hsl(var(--foreground) / 0.1);
+  --jp-cell-editor-active-background: hsl(var(--editor-surface));
+  --jp-cell-editor-active-border-color: hsl(var(--alpha) / 0.45);
+  --jp-cell-prompt-not-active-font-color: hsl(var(--foreground) / 0.45);
+  --jp-cell-inprompt-font-color: hsl(var(--alpha));
+  --jp-cell-outprompt-font-color: hsl(var(--foreground) / 0.55);
+  --jp-editor-background: hsl(var(--editor-surface));
+  --jp-rendermime-error-background: hsl(var(--risk) / 0.12);
+  --jp-mirror-editor-keyword-color: hsl(var(--alpha));
+  --jp-mirror-editor-atom-color: hsl(210 90% 55%);
+  --jp-mirror-editor-number-color: hsl(25 95% 48%);
+  --jp-mirror-editor-def-color: hsl(270 60% 60%);
+  --jp-mirror-editor-variable-color: var(--foreground);
+  --jp-mirror-editor-variable-2-color: hsl(200 70% 45%);
+  --jp-mirror-editor-variable-3-color: hsl(30 80% 45%);
+  --jp-mirror-editor-property-color: hsl(200 70% 45%);
+  --jp-mirror-editor-operator-color: hsl(var(--foreground) / 0.65);
+  --jp-mirror-editor-comment-color: hsl(var(--foreground) / 0.45);
+  --jp-mirror-editor-string-color: hsl(130 45% 40%);
+  --jp-mirror-editor-string-2-color: hsl(130 35% 38%);
+  --jp-mirror-editor-meta-color: hsl(var(--foreground) / 0.55);
+  --jp-mirror-editor-qualifier-color: hsl(270 45% 55%);
+  --jp-mirror-editor-builtin-color: hsl(340 55% 48%);
+  --jp-mirror-editor-bracket-color: hsl(var(--foreground) / 0.55);
+  --jp-mirror-editor-tag-color: hsl(var(--alpha));
+  --jp-mirror-editor-attribute-color: hsl(25 95% 48%);
+  --jp-mirror-editor-header-color: hsl(var(--alpha));
+  --jp-mirror-editor-hr-color: hsl(var(--foreground) / 0.35);
+  --jp-mirror-editor-link-color: hsl(var(--alpha));
+  --jp-mirror-editor-error-color: hsl(var(--risk));
+  --jp-ui-font-family: var(--font-inter), system-ui, sans-serif;
+  --jp-ui-font-size1: 13px;
+  --jp-code-font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --jp-code-font-size: 13px;
+  --jp-content-font-family: var(--font-inter), system-ui, sans-serif;
+  --jp-content-font-color1: var(--foreground);
+  --jp-content-font-color2: hsl(var(--foreground) / 0.72);
+  --jp-content-font-color3: hsl(var(--foreground) / 0.55);
+  --jp-content-heading-font-weight: 600;
+  --jp-content-heading-margin-top: 1.2em;
+  --jp-content-heading-margin-bottom: 0.8em;
+  --jp-content-font-size5: 1.05rem;
+  --jp-content-line-height: 1.55;
+}
+
+/* Keep notebook chrome transparent so .lq-workbench-notebook-root grid shows through */
+.libre-notebook-host .jp-Notebook,
+.libre-notebook-host .jp-NotebookPanel,
+.libre-notebook-host .jp-NotebookPanel-notebook,
+.libre-notebook-host .jp-NotebookPanel-scroller {
+  background: transparent !important;
+}
+
+/* Full-width notebook — no max-width column (reads as one canvas with the shell) */
+.libre-notebook-host .jp-NotebookPanel,
+.libre-notebook-host .jp-WindowedPanel-outer {
+  max-width: none !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  background: transparent !important;
+}
+
+.libre-notebook-host .jp-WindowedPanel-inner,
+.libre-notebook-host [class*="jp-WindowedPanel"] {
+  background: transparent !important;
+}
+
+.libre-notebook-host .cm-editor,
+.libre-notebook-host .cm-scroller,
+.libre-notebook-host .cm-gutters {
+  background-color: hsl(var(--editor-surface)) !important;
+}
+
+.libre-notebook-host .jp-OutputArea,
+.libre-notebook-host .jp-OutputArea-child,
+.libre-notebook-host .jp-OutputArea-output,
+.libre-notebook-host .jp-RenderedHTMLCommon {
+  background-color: hsl(var(--cell-surface)) !important;
+}
+
+/*
+ * Do not override .jp-WindowedPanel-outer / notebook heights: JupyterLab 4’s windowed
+ * notebook uses an absolutely positioned viewport; collapsing the outer panel hides cells.
+ * Scroll happens inside this panel; the host stays visually flat (transparent above).
+ */
+
+/* Jupyter hides the “+” footer until hover — keep it visible in our shell */
+.libre-notebook-host .jp-Notebook-footer {
+  opacity: 1 !important;
+}
+
+.libre-notebook-host .jp-Cell {
+  border-radius: 12px;
+  border: 1px solid hsl(var(--foreground) / 0.08) !important;
+  background: hsl(var(--cell-surface)) !important;
+  margin-bottom: 10px;
+}
+
+.libre-notebook-host .jp-Cell-inputWrapper,
+.libre-notebook-host .jp-Cell-outputWrapper {
+  background: transparent !important;
+}
+
+.libre-notebook-host .jp-InputPrompt {
+  font-family: var(--font-inter), system-ui, sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.011em !important;
+  color: hsl(var(--alpha)) !important;
+}
+
+.libre-notebook-host .jp-OutputPrompt {
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace !important;
+  color: hsl(var(--foreground) / 0.55) !important;
+}
+
+.libre-notebook-host .jp-CodeMirrorEditor,
+.libre-notebook-host .cm-editor {
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace !important;
+}
+
+/* Fallback if theme CSS loads late: CodeMirror needs a non-zero block size to be focusable */
+.libre-notebook-host .cm-editor .cm-scroller {
+  min-height: 8rem;
+}
+
+.libre-notebook-host .jp-RenderedText pre,
+.libre-notebook-host .jp-RenderedText {
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace !important;
+}
+
+.dark .libre-notebook-host .jp-Cell.jp-mod-active {
+  border-color: hsl(var(--alpha) / 0.45) !important;
+}
+
+.libre-notebook-host .jp-Toolbar {
+  display: none !important;
+}
+
+/* Cell sidebar: datalayer hides gutter unless the cell is active — show for every cell */
+.libre-notebook-host .dla-Box-Notebook .jp-Cell .dla-CellSidebar-Container {
+  display: flex !important;
+}

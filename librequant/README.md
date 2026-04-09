@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LibreQuant Nexus
 
-## Getting Started
+Browser-based quantitative research workbench: Next.js App Router shell with [`@datalayer/jupyter-react`](https://www.npmjs.com/package/@datalayer/jupyter-react) talking to a local Jupyter Server over the standard Jupyter protocol (WebSockets + REST).
 
-First, run the development server:
+## Prerequisites
+
+- Node.js 20+
+- Docker (for the bundled Jupyter Server)
+
+## Jupyter Server (Docker)
+
+From this directory:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker compose up
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This starts `quay.io/jupyter/scipy-notebook` on port **8888** with token **`devtoken`**, CORS for the Next dev origins, **`Access-Control-Allow-Credentials`** (required because `@jupyterlab/services` uses credentialed fetch), and XSRF checks relaxed for cross-origin token API calls (dev only).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+If the app shows “Connecting to Jupyter…” forever, confirm `NEXT_PUBLIC_JUPYTER_TOKEN` matches the container (`devtoken` by default) and restart the app after changing env. An empty token is rejected by Jupyter (403 on `/api/*`).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## One command: Jupyter + Next dev
 
-## Learn More
+After `npm install`, from this directory:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run dev:stack
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This runs `docker compose up -d`, waits until port **8888** accepts connections, creates `.env.local` from `.env.example` if it is missing, then starts `npm run dev` (Next on **http://localhost:3000**). Press **Ctrl+C** to stop the dev server and run `docker compose down` (omit stopping Jupyter with `npm run dev:stack -- --keep-jupyter`). To only start Next (Jupyter already running elsewhere): `npm run dev:stack -- --no-docker`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Web app (manual)
 
-## Deploy on Vercel
+Copy `.env.example` to `.env.local` and adjust if needed:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+cp .env.example .env.local
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Install and run the Next.js dev server:
+
+```bash
+npm install
+npm run dev
+```
+
+`predev` / `prebuild` copy JupyterLab theme variable CSS into `public/jupyter/` because Turbopack does not support the `variables.css?raw` import used inside `@datalayer/jupyter-react`’s `JupyterLabCss` (you would otherwise see `[JupyterLabCss] Failed to load theme variables` and a broken editor theme).
+
+Open [http://localhost:3000](http://localhost:3000). The notebook connects to `NEXT_PUBLIC_JUPYTER_BASE_URL` using `NEXT_PUBLIC_JUPYTER_TOKEN` (must match the Jupyter server token).
+
+## Scripts
+
+| Command      | Description              |
+| ------------ | ------------------------ |
+| `npm run dev:stack` | Docker Jupyter + Next dev (recommended locally) |
+| `npm run dev`    | Development server       |
+| `npm run build`  | Production build         |
+| `npm run start`  | Start production server  |
+| `npm run lint`   | ESLint (Next flat config) |
+
+## Security notes
+
+- **React Strict Mode is disabled** in `next.config.ts` so the Jupyter notebook runtime (Yjs + kernel comms) is not torn down twice in development; re-enable only if you accept noisy Yjs / “Comm not found” errors from `@datalayer/jupyter-react`.
+- JupyterLab 4’s notebook model always uses **Yjs** (`@jupyter/ydoc`); `collaborative: false` only turns off RTC. Benign Yjs / comm / LabIcon SVG messages in dev are filtered while the notebook is mounted (see `lib/jupyter-dev-noise.ts`); set `NEXT_PUBLIC_JUPYTER_VERBOSE=1` for full logs.
+- **Dev-oriented** Docker and CSP: production deployments should tighten `Content-Security-Policy` and restrict `connect-src` to known Jupyter origins.
+- Cell HTML outputs are passed through **DOMPurify** in the notebook host (see `components/notebook/output-sanitizer.tsx`). Complex `text/html` widgets that rely on inline scripts may need a dedicated trusted renderer later.
+
+## Stack
+
+- Next.js 16.2 (App Router), React 19.2, TypeScript 5
+- Tailwind CSS v4, `next-themes`, Zustand, Lucide
+- Jupyter: `@datalayer/jupyter-react`, `@jupyterlab/services`
