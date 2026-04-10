@@ -185,4 +185,39 @@
 /* Cell sidebar: datalayer hides gutter unless the cell is active — show for every cell */
 .libre-notebook-host .dla-Box-Notebook .jp-Cell .dla-CellSidebar-Container {
   display: flex !important;
+  /*
+   * Datalayer sets inline position:absolute; top:0 on the sidebar, so it stays at the
+   * physical top of the cell. Long outputs make the cell very tall; scrolling to read
+   * output scrolls those controls away. Sticky keeps run/delete aligned with the viewport
+   * while scrolling inside the notebook.
+   * Must override inline styles (sidebarWidth in jupyter-workbench.tsx is 48px).
+   */
+  position: sticky !important;
+  top: 0 !important;
+  right: -48px !important;
+  width: 48px !important;
+  align-self: flex-start !important;
+  z-index: 5 !important;
+  height: fit-content !important;
+}
+
+/*
+ * Sticky positioning is suppressed when an ancestor between the element and the scroll
+ * container uses overflow:hidden. Datalayer’s Notebook wrapper sets that on these nodes.
+ */
+.libre-notebook-host .dla-Box-Notebook,
+.libre-notebook-host .jp-Notebook {
+  overflow-y: visible !important;
+}
+
+/*
+ * JupyterLab 4 defaults to windowingMode "contentVisibility": an IntersectionObserver
+ * toggles inline content-visibility/contain on each cell. For a very tall cell, the
+ * visible strip can be <10% of the cell height, so the cell is treated as not
+ * intersecting — the browser skips painting the off-screen top where the Datalayer
+ * cell sidebar lives, so run/delete vanish. Force full paint for notebook cells.
+ */
+.libre-notebook-host .jp-Notebook .jp-Cell {
+  content-visibility: visible !important;
+  contain: style !important;
 }

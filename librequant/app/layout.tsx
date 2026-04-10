@@ -33,6 +33,8 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
+          themes={["light", "dark"]}
+          storageKey="librequant-theme"
         >
           <a href="#main" className="skip-link">
             Skip to content
