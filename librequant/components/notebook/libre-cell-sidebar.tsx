@@ -4,19 +4,24 @@ import type { ICellModel } from "@jupyterlab/cells";
 import { notebookStore, useNotebookStore } from "@datalayer/jupyter-react";
 import { Play, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { LIBRE_NOTEBOOK_ID } from "@/lib/notebook-constants";
+import { useWorkbenchStore } from "@/lib/stores/workbench-store";
 
 /** Matches {@link ICellSidebarProps} from jupyter-react (factory-injected cell gutter). */
 type LibreCellSidebarProps = {
   commands: import("@lumino/commands").CommandRegistry;
-  model: ICellModel;
+  /** Can be null briefly during Jupyter teardown / strict-mode remounts */
+  model: ICellModel | null;
   nbgrader: boolean;
 };
 
 function cellIndexForModel(
-  model: ICellModel,
+  model: ICellModel | null | undefined,
+  notebookId: string,
 ): number {
-  const adapter = notebookStore.getState().selectNotebookAdapter(LIBRE_NOTEBOOK_ID);
+  if (!model || !notebookId) {
+    return -1;
+  }
+  const adapter = notebookStore.getState().selectNotebookAdapter(notebookId);
   const cells = adapter?.notebook?.model?.cells;
   if (!cells) {
     return -1;
@@ -32,9 +37,9 @@ function cellIndexForModel(
 /**
  * Re-render when the notebook cell list changes so indices stay correct after insert/delete.
  */
-function useNotebookCellsRevision() {
+function useNotebookCellsRevision(notebookId: string) {
   const adapter = useNotebookStore((s) =>
-    s.selectNotebookAdapter(LIBRE_NOTEBOOK_ID),
+    notebookId ? s.selectNotebookAdapter(notebookId) : undefined,
   );
   const [, setRevision] = useState(0);
   useEffect(() => {
@@ -49,7 +54,7 @@ function useNotebookCellsRevision() {
     return () => {
       cells.changed.disconnect(onChanged);
     };
-  }, [adapter]);
+  }, [adapter, notebookId]);
 }
 
 /**
@@ -60,19 +65,21 @@ export function LibreCellSidebar({
   nbgrader: _nbgrader,
 }: LibreCellSidebarProps) {
   void _nbgrader;
-  useNotebookCellsRevision();
+  /** Jupyter may mount the cell gutter outside `Notebook`’s React subtree; use global store, not context. */
+  const notebookId = useWorkbenchStore((s) => s.activeNotebookId) ?? "";
+  useNotebookCellsRevision(notebookId);
   const kernelStatus = useNotebookStore((s) =>
-    s.selectKernelStatus(LIBRE_NOTEBOOK_ID),
+    notebookId ? s.selectKernelStatus(notebookId) : "idle",
   );
   const isBusy = kernelStatus === "busy";
 
-  const index = cellIndexForModel(model);
+  const index = cellIndexForModel(model, notebookId);
 
   const runThisCell = useCallback(async () => {
-    if (index < 0) {
+    if (!model || index < 0) {
       return;
     }
-    const adapter = notebookStore.getState().selectNotebookAdapter(LIBRE_NOTEBOOK_ID);
+    const adapter = notebookStore.getState().selectNotebookAdapter(notebookId);
     if (!adapter) {
       return;
     }
@@ -81,18 +88,27 @@ export function LibreCellSidebar({
     } catch (e) {
       console.error("[librequant] Run cell failed:", e);
     }
-  }, [index]);
+  }, [index, model, notebookId]);
 
   const deleteThisCell = useCallback(() => {
-    if (index < 0) {
+    if (!model || index < 0) {
       return;
     }
     try {
-      notebookStore.getState().deleteCell(LIBRE_NOTEBOOK_ID, index);
+      notebookStore.getState().deleteCell(notebookId, index);
     } catch (e) {
       console.error("[librequant] Delete cell failed:", e);
     }
-  }, [index]);
+  }, [index, model, notebookId]);
+
+  if (!notebookId || !model) {
+    return (
+      <div
+        className="flex w-8 flex-col items-center gap-1 pt-0.5"
+        aria-hidden
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col items-center gap-1 pt-0.5">

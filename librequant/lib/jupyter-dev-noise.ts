@@ -19,13 +19,22 @@ function shouldSuppressConsoleArgs(args: unknown[]): boolean {
     s.includes("Comm not found") ||
     s.includes("SVG HTML was malformed for LabIcon") ||
     s.includes("[JupyterLabCss]") ||
-    s.includes("Requesting cell execution without any cell executor")
+    s.includes("Requesting cell execution without any cell executor") ||
+    s.includes("model is null") ||
+    s.includes("cell.model") ||
+    s.includes("can't access property \"id\"")
   );
 }
 
 function shouldSuppressRejection(reason: unknown): boolean {
   const msg = reason instanceof Error ? reason.message : String(reason ?? "");
-  return msg === "Disposed" || msg.includes("Comm not found");
+  return (
+    msg === "Disposed" ||
+    msg.includes("Comm not found") ||
+    msg.includes("model is null") ||
+    msg.includes("cell.model") ||
+    msg.includes('can\'t access property "id"')
+  );
 }
 
 export function installJupyterDevNoiseSuppression(): () => void {
@@ -58,13 +67,25 @@ export function installJupyterDevNoiseSuppression(): () => void {
       e.preventDefault();
     }
   };
+  const onWindowError = (e: ErrorEvent) => {
+    const msg = e.message ?? (e.error instanceof Error ? e.error.message : String(e.error ?? ""));
+    if (
+      msg.includes("model is null") ||
+      msg.includes("cell.model") ||
+      msg.includes('can\'t access property "id"')
+    ) {
+      e.preventDefault();
+    }
+  };
   window.addEventListener("unhandledrejection", onRejection);
+  window.addEventListener("error", onWindowError);
 
   return () => {
     console.log = origLog;
     console.warn = origWarn;
     console.error = origError;
     window.removeEventListener("unhandledrejection", onRejection);
+    window.removeEventListener("error", onWindowError);
   };
 }
 

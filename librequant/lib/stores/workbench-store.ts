@@ -4,6 +4,8 @@ import { persist } from "zustand/middleware";
 export type WorkbenchState = {
   sidebarOpen: boolean;
   activeNotebookPath: string | null;
+  /** Matches `@datalayer/jupyter-react` `Notebook` `id` for the open file — not persisted */
+  activeNotebookId: string | null;
   /** PyPI install modal — not persisted */
   packageSearchOpen: boolean;
   /** Bumps when the modal opens so the search panel remounts with fresh state */
@@ -11,6 +13,7 @@ export type WorkbenchState = {
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
   setActiveNotebookPath: (path: string | null) => void;
+  setActiveNotebookId: (id: string | null) => void;
   setPackageSearchOpen: (open: boolean) => void;
 };
 
@@ -19,11 +22,13 @@ export const useWorkbenchStore = create<WorkbenchState>()(
     (set, get) => ({
       sidebarOpen: true,
       activeNotebookPath: null,
+      activeNotebookId: null,
       packageSearchOpen: false,
       packageSearchGeneration: 0,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       toggleSidebar: () => set({ sidebarOpen: !get().sidebarOpen }),
       setActiveNotebookPath: (path) => set({ activeNotebookPath: path }),
+      setActiveNotebookId: (id) => set({ activeNotebookId: id }),
       setPackageSearchOpen: (open) =>
         set((state) => ({
           packageSearchOpen: open,

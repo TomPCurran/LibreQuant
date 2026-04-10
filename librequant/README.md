@@ -19,6 +19,12 @@ This starts `quay.io/jupyter/scipy-notebook` on port **8888** with token **`devt
 
 If the app shows “Connecting to Jupyter…” forever, confirm `NEXT_PUBLIC_JUPYTER_TOKEN` matches the container (`devtoken` by default) and restart the app after changing env. An empty token is rejected by Jupyter (403 on `/api/*`).
 
+### Notebook files and persistence
+
+- Compose mounts a named Docker volume on **`/home/jovyan/work`**, so anything under Jupyter’s `work/` tree (including the default library folder) survives container restarts.
+- Set **`NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT`** (see `.env.example`) to the directory **relative to the Jupyter server root** where the app lists and saves notebooks (default: `work/librequant`). The app creates that folder on first use if it does not exist.
+- To back up notebooks, copy the volume data (`docker run --rm -v jupyter-librequant-work:/data …`) or bind-mount a host directory instead of the named volume in `docker-compose.yml`.
+
 ## One command: Jupyter + Next dev
 
 After `npm install`, from this directory:

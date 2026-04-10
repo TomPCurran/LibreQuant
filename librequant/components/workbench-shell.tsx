@@ -1,25 +1,10 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useWorkbenchStore } from "@/lib/stores/workbench-store";
 import { LineChart, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-
-const JupyterWorkbench = dynamic(
-  () =>
-    import("@/lib/ensure-webpack-public-path")
-      .then(() => import("@/components/notebook/jupyter-workbench"))
-      .then((m) => m.JupyterWorkbench),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex min-h-[320px] items-center justify-center text-sm font-light text-text-secondary">
-        Loading notebook runtime…
-      </div>
-    ),
-  }
-);
 
 function NavItem({
   label,
@@ -44,7 +29,19 @@ function NavItem({
   );
 }
 
-export function WorkbenchShell() {
+export function WorkbenchShell({
+  children,
+  sectionEyebrow = "Workspace",
+  title = "The Local-First Workbench for Algorithmic Alpha.",
+  subtitle = "Python kernels via Jupyter protocol — the Assistant; you are the Architect.",
+}: {
+  children: React.ReactNode;
+  /** Uppercase section label above the main region */
+  sectionEyebrow?: string;
+  title?: string;
+  subtitle?: string;
+}) {
+  const pathname = usePathname();
   const sidebarOpen = useWorkbenchStore((s) => s.sidebarOpen);
   const toggleSidebar = useWorkbenchStore((s) => s.toggleSidebar);
 
@@ -75,7 +72,16 @@ export function WorkbenchShell() {
         </div>
         {sidebarOpen ? (
           <nav className="flex flex-col gap-0.5" aria-label="Primary">
-            <NavItem label="Workspace" href="/" active />
+            <NavItem
+              label="Workspace"
+              href="/"
+              active={pathname === "/"}
+            />
+            <NavItem
+              label="Notebooks"
+              href="/notebooks"
+              active={pathname === "/notebooks"}
+            />
             <NavItem label="Strategy Library" href="#" />
             <NavItem label="Data Ingestors" href="#" />
             <NavItem label="Portfolio Monitor" href="#" />
@@ -86,12 +92,9 @@ export function WorkbenchShell() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-50 flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-black/6 bg-background/80 px-4 py-3 backdrop-blur-xl dark:border-white/10 sm:px-6">
           <div className="min-w-0">
-            <p className="heading-brand text-base text-foreground">
-              The Local-First Workbench for Algorithmic Alpha.
-            </p>
+            <p className="heading-brand text-base text-foreground">{title}</p>
             <p className="mt-0.5 text-xs font-light text-text-secondary">
-              Python kernels via Jupyter protocol — the Assistant; you are the
-              Architect.
+              {subtitle}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -118,12 +121,12 @@ export function WorkbenchShell() {
           className="flex flex-1 flex-col outline-none"
         >
           <div className="flex flex-1 flex-col px-4 pb-10 pt-6 sm:px-6">
-            <div className="mx-auto w-full max-w-[1280px] flex-1">
+            <div className="mx-auto w-full max-w-5xl flex-1">
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-secondary">
-                Workspace
+                {sectionEyebrow}
               </p>
               <div className="min-h-[min(72vh,840px)] bg-transparent p-0 md:p-0">
-                <JupyterWorkbench />
+                {children}
               </div>
             </div>
           </div>

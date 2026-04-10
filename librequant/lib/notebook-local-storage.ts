@@ -3,7 +3,7 @@ import type { INotebookContent } from "@jupyterlab/nbformat";
 /** Bump when the stored shape changes so we do not resurrect incompatible JSON. */
 const STORAGE_KEY = "librequant:notebook:v1";
 
-function isNotebookContent(value: unknown): value is INotebookContent {
+export function isNotebookContent(value: unknown): value is INotebookContent {
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
   return (

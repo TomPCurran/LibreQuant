@@ -17,3 +17,13 @@ export function getPublicJupyterConfig(): {
     (process.env.NODE_ENV === "development" ? "devtoken" : "");
   return { baseUrl, token };
 }
+
+/**
+ * Jupyter contents path for the notebook library (no leading/trailing slash segments).
+ * Must stay in sync with Docker layout under `/home/jovyan/work/...` when using compose.
+ */
+export function getNotebookLibraryRoot(): string {
+  const raw =
+    process.env.NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT?.trim() ?? "work/librequant";
+  return raw.replace(/^\/+/, "").replace(/\/+$/, "");
+}

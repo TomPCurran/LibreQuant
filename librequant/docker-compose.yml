@@ -1,6 +1,9 @@
 services:
   jupyter:
     image: quay.io/jupyter/scipy-notebook:latest
+    volumes:
+      # Persist notebooks under Jupyter’s default `work/` tree (see README / NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT)
+      - jupyter-librequant-work:/home/jovyan/work
     ports:
       - "8888:8888"
     command:
@@ -13,3 +16,6 @@ services:
       - "--ServerApp.allow_origin_pat=^http://(localhost|127\\.0\\.0\\.1):3000$"
       # @jupyterlab/services uses fetch(..., { credentials: 'include' }); browsers require this for CORS
       - --ServerApp.allow_credentials=True
+
+volumes:
+  jupyter-librequant-work:
