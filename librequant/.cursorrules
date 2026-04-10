@@ -37,7 +37,7 @@ Tone: Technical, institutional-grade, data-dense, and high-precision. It should 
 
 ## Visual identity
 
-Assets: Wordmark and Logo paths are located under public/logo.svg and public/mark.svg. Use high-contrast monochrome versions for the sidebar.
+Assets: Prefer **Lucide React** icons for UI chrome (e.g. sidebar mark). Optional static assets may live under `public/`; use high-contrast monochrome styling for the sidebar.
 
 Design References: Inspired by Vercel's minimalism, Linear's depth (glassmorphism), and TradingView's data density. Avoid "bubbly" UI, overly rounded buttons (except for specific brand accents), and vibrant non-brand colors.
 

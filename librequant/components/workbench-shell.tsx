@@ -1,11 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useWorkbenchStore } from "@/lib/stores/workbench-store";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { LineChart, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 const JupyterWorkbench = dynamic(
   () =>
@@ -57,14 +56,12 @@ export function WorkbenchShell() {
         } py-4`}
       >
         <div className="mb-6 flex items-center gap-2">
-          <Image
-            src="/mark.svg"
-            alt=""
-            width={28}
-            height={28}
-            className="shrink-0 opacity-90 dark:invert"
-            priority
-          />
+          <div
+            className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-foreground/10 text-foreground"
+            aria-hidden
+          >
+            <LineChart className="size-[18px] opacity-90" strokeWidth={1.75} />
+          </div>
           {sidebarOpen ? (
             <div className="min-w-0">
               <span className="heading-brand block truncate text-sm text-foreground">

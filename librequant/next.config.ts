@@ -27,9 +27,8 @@ const csp = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
-  experimental: {
-    optimizePackageImports: ["lucide-react"],
-  },
+  // Avoid experimental.optimizePackageImports for lucide-react here: on Next 16 + Turbopack
+  // it has been associated with odd runtime issues; tree-shaking still applies via named imports.
   // JupyterLab / @datalayer/jupyter-react rely on Yjs + kernel comms; React Strict Mode's
   // dev-only double mount disposes models while globals still reference the old Y.Doc,
   // which spams Yjs errors, "Disposed" rejections, and "Comm not found" noise.

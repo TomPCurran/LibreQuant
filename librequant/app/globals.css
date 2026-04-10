@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @config "../tailwind.config.ts";
 
+/* Class-based dark mode for Tailwind v4 (next-themes sets .dark on <html>) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 html {
   scroll-behavior: smooth;
 }
@@ -28,28 +31,28 @@ html {
 }
 
 :root {
-  --background: 0 0% 100%;
+  /* Page canvas — design_document §1.3 Surface light */
+  --background: 240 6% 98%;
   --foreground: 240 6% 10%;
   --text-primary: 240 6% 10%;
   --text-secondary: 240 4% 40%;
   --alpha: 173 80% 36%;
   --risk: 347 77% 50%;
   --border-subtle: 240 6% 90%;
-  /* Notebook cell frame: slightly darker than page (light) */
-  --cell-surface: 240 6% 96%;
-  /* Code editor: same as page canvas in light */
-  --editor-surface: 0 0% 100%;
+  /* Notebook: gray cell frame, off-white editor */
+  --cell-surface: 240 7% 92%;
+  --editor-surface: 40 18% 97%;
 }
 
 .dark {
-  --background: 240 6% 6%;
-  --foreground: 0 0% 96%;
-  --text-primary: 0 0% 96%;
-  --text-secondary: 240 5% 64%;
-  --border-subtle: 240 4% 18%;
-  /* Cell chrome between canvas and editor; editor is lightest (highest L%) */
-  --cell-surface: 240 6% 10%;
-  --editor-surface: 240 5% 18%;
+  /* Blue-gray stack: canvas (darkest) < cell (mid) < editor (lightest) */
+  --background: 222 32% 8%;
+  --foreground: 210 25% 96%;
+  --text-primary: 210 25% 96%;
+  --text-secondary: 220 14% 64%;
+  --border-subtle: 222 18% 22%;
+  --cell-surface: 222 26% 13%;
+  --editor-surface: 222 22% 20%;
 }
 
 @theme inline {

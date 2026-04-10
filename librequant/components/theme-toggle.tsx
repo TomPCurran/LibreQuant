@@ -5,7 +5,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
 export function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -28,7 +28,8 @@ export function ThemeToggle() {
     );
   }
 
-  const isDark = (theme === "system" ? resolvedTheme : theme) === "dark";
+  /* Align icon with what is painted (html class); matches next-themes resolved theme */
+  const isDark = resolvedTheme === "dark";
 
   return (
     <button
