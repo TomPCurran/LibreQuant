@@ -1,21 +1,68 @@
-# LibreQuant Nexus
+# LibreQuant
 
 Browser-based quantitative research workbench: Next.js App Router shell with [`@datalayer/jupyter-react`](https://www.npmjs.com/package/@datalayer/jupyter-react) talking to a local Jupyter Server over the standard Jupyter protocol (WebSockets + REST).
+
+### Status model (Jupyter vs frontend)
+
+The UI separates three layers so it is clear what is doing the work:
+
+| Layer                  | What it is                                                                                                                                                                                |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **LibreQuant shell**   | Next.js app in your browser (routing, layout, editors).                                                                                                                                   |
+| **Jupyter connection** | Network session to the Jupyter Server (REST for files, WebSockets for the kernel). If this reconnects, the toolbar may show a notice; cell output can lag briefly until IOPub catches up. |
+| **Python kernel**      | The process that runs notebook code. **Reset session** restarts this process and clears outputs; it does **not** restart Docker or the Jupyter Server.                                    |
+| **Notebook file**      | The `.ipynb` JSON loaded and saved through the Jupyter Contents API (your workspace on disk inside the container).                                                                        |
+
+Loading screens spell out which phase is active (connecting to the server vs starting the kernel vs loading the file). See [`lib/jupyter-notebook-phase.ts`](lib/jupyter-notebook-phase.ts) for the shared copy.
+
+## Application routes
+
+| Route | Purpose |
+| ----- | ------- |
+| [`app/page.tsx`](app/page.tsx) | Home / notebook workbench (`HomeWorkspace`). Opens notebooks via `?path=` query. |
+| [`app/notebooks/page.tsx`](app/notebooks/page.tsx) | Notebook library: list and open `.ipynb` files under the Jupyter contents root. |
+| [`app/strategies/page.tsx`](app/strategies/page.tsx) | Strategy library browser. |
+| [`app/strategies/edit/page.tsx`](app/strategies/edit/page.tsx) | Strategy editor (files under the strategies tree via Contents API). |
+
+Layouts and global UI: [`app/layout.tsx`](app/layout.tsx) (fonts, theme, skip link); client providers in [`components/providers.tsx`](components/providers.tsx) (`JupyterReachabilityStack`).
 
 ## Prerequisites
 
 - Node.js 20+
 - Docker (for the bundled Jupyter Server)
 
+## Configuration
+
+Copy [`.env.example`](.env.example) to `.env.local` and adjust (or rely on `predev` / `prebuild`, which create `.env.local` from `.env.example` when it is missing). Variables are documented inline in `.env.example`; the important ones:
+
+| Variable                            | Purpose                                                                                                                                                                                                                                                                                                         |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_JUPYTER_BASE_URL`      | Jupyter Server HTTP origin (no trailing slash), e.g. `http://127.0.0.1:8888`. Prefer **127.0.0.1** with Docker’s default port map (`127.0.0.1:8888`); `localhost` can resolve to IPv6 first on macOS and fail while the server listens on IPv4 only. The app normalizes `localhost` → `127.0.0.1` for this URL. |
+| `NEXT_PUBLIC_JUPYTER_TOKEN`         | Login token for Jupyter; must match the server (e.g. Docker `JUPYTER_TOKEN`). **Treat as a password** — it is exposed to the browser.                                                                                                                                                                           |
+| `NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT` | Contents path for the notebook library relative to Jupyter root (default `work/librequant`).                                                                                                                                                                                                                    |
+| `NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH` | Default assumes Docker’s `PYTHONPATH` (Compose stack). Set to `0` only to force browser `sys.path` injection (e.g. Jupyter without matching `PYTHONPATH`). If you change `NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT` or `NEXT_PUBLIC_JUPYTER_USER_HOME`, update the `PYTHONPATH` line in the repository root `docker-compose.yml` so it matches `getJupyterUserHomeAbsolute()` + `getStrategyLibraryRoot()` in `lib/env.ts`. |
+| `NEXT_PUBLIC_JUPYTER_USER_HOME`     | Absolute Linux home inside the container for kernel snippets that join paths (default `/home/jovyan`).                                                                                                                                                                                                          |
+| `NEXT_PUBLIC_JUPYTER_VERBOSE`       | Set to `1` to disable dev log filtering in `lib/jupyter-dev-noise.ts`.                                                                                                                                                                                                                                          |
+
+Runtime resolution and validation live in [`lib/env.ts`](lib/env.ts) (JSDoc on each export).
+
 ## Jupyter Server (Docker)
 
-From this directory:
+**Scope:** This stack is **local-only** — a browser on your machine talking to Jupyter on **localhost**. It is not intended for public or multi-tenant deployment without additional hardening. See [SECURITY.md](SECURITY.md) for the threat model.
+
+From the **repository root** (parent of `librequant/`):
 
 ```bash
 docker compose up
 ```
 
-This starts `quay.io/jupyter/scipy-notebook` on port **8888** with token **`devtoken`**, CORS for the Next dev origins, **`Access-Control-Allow-Credentials`** (required because `@jupyterlab/services` uses credentialed fetch), and XSRF checks relaxed for cross-origin token API calls (dev only).
+This starts `quay.io/jupyter/scipy-notebook` with:
+
+- **`PYTHONPATH`** including `/home/jovyan/work/librequant/strategies` so notebook kernels see strategy packages without per-load `executeCode` (keep in sync with `NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT` / `NEXT_PUBLIC_JUPYTER_USER_HOME` if you change them). The container entry ensures that directory exists before Jupyter starts.
+- Port **8888** bound to **127.0.0.1** on the host (not advertised on the LAN from Docker’s port mapping).
+- Token **`devtoken`** (`NEXT_PUBLIC_JUPYTER_TOKEN` must match). **Treat the token like a password** — it is bundled into the client and grants full access to the Jupyter server and its mounted files.
+- CORS for the Next dev origins and **`Access-Control-Allow-Credentials`** (required because `@jupyterlab/services` uses credentialed fetch).
+- **XSRF checks disabled** on Jupyter (`ServerApp.disable_check_xsrf`) because the app (`http://localhost:3000`) and Jupyter (`http://localhost:8888`) are different origins; the token and restricted CORS still apply. Acceptable for local dev; **do not expose port 8888 to untrusted networks** (see [SECURITY.md](SECURITY.md)).
 
 If the app shows “Connecting to Jupyter…” forever, confirm `NEXT_PUBLIC_JUPYTER_TOKEN` matches the container (`devtoken` by default) and restart the app after changing env. An empty token is rejected by Jupyter (403 on `/api/*`).
 
@@ -33,7 +80,27 @@ After `npm install`, from this directory:
 npm run dev:stack
 ```
 
-This runs `docker compose up -d`, waits until port **8888** accepts connections, creates `.env.local` from `.env.example` if it is missing, then starts `npm run dev` (Next on **http://localhost:3000**). Press **Ctrl+C** to stop the dev server and run `docker compose down` (omit stopping Jupyter with `npm run dev:stack -- --keep-jupyter`). To only start Next (Jupyter already running elsewhere): `npm run dev:stack -- --no-docker`.
+This runs `docker compose up -d` from the repo root, waits until port **8888** accepts TCP, then until the Jupyter HTTP API responds on **`/api/kernels`**, ensures `.env.local` (via `ensure-env.mjs`), then starts `npm run dev` (Next on **http://localhost:3000**). The home workspace waits for the same HTTP probe before loading the notebook UI. Press **Ctrl+C** to stop the dev server and run `docker compose down` (omit stopping Jupyter with `npm run dev:stack -- --keep-jupyter`). To only start Next (Jupyter already running elsewhere): `npm run dev:stack -- --no-docker`.
+
+**`--no-docker` / external Jupyter:** Either configure the same **`PYTHONPATH`** on that server (absolute path to your strategies root inside the server filesystem) and keep the default (or `NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH=1`), or set `NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH=0` so the app uses client-side `sys.path` injection.
+
+## Production build (`npm run build` + `npm run start`)
+
+`NEXT_PUBLIC_*` values are **inlined at `next build` time** into the client bundle. They are not re-read from `.env.local` when you run `npm run start` alone.
+
+1. Set or generate env **before** building: `prebuild` runs [`scripts/ensure-env.mjs`](scripts/ensure-env.mjs) and copies [`.env.example`](.env.example) → `.env.local` when `.env.local` is missing, so defaults apply during `next build`.
+2. Run **`npm run build`**, then **`npm run start`** (with Docker Jupyter already up, or use **`npm run prod:stack`** below).
+3. After changing any `NEXT_PUBLIC_*` value, run **`npm run build`** again before `npm run start`.
+
+**Convenience:** **`npm run prod`** runs `build` then `start`. **`npm run prod:stack`** runs [`scripts/prod-stack.mjs`](scripts/prod-stack.mjs): ensure env, `docker compose up -d`, wait for Jupyter, `npm run build`, then `npm run start` (same flags as dev stack: `--no-docker`, `--keep-jupyter`).
+
+### Dev terminal: `socket hang up` / `ECONNRESET`
+
+Next.js dev (especially with Turbopack) or aborted browser connections can occasionally log **`Error: socket hang up`** with code **`ECONNRESET`**. That usually means a TCP connection closed while a request or HMR channel was in flight (tab refresh, navigation between routes, or Jupyter reconnecting). It is not the same as a bug in your notebook code. [`instrumentation.ts`](instrumentation.ts) installs dev-only handlers so these errors are less likely to tear down the process; you may still see a single log line from Next. If the app keeps working, you can ignore it.
+
+### Jupyter log: `404` / “Kernel does not exist”
+
+After **`docker compose` restarts Jupyter**, old kernel IDs are gone. A browser tab that was open before the restart (or another tab still pointing at `localhost:3000`) may briefly issue **`GET /api/kernels/{id}`** and get **404** — the UI is asking for a kernel the server no longer has. **Refresh the tab** (or close extra tabs) so the workbench starts a new session; the message is harmless if the app recovers. The notebook hook uses the same `ServiceManager` as the sidebar so you do not run two parallel Jupyter clients in one page.
 
 ## Web app (manual)
 
@@ -50,21 +117,28 @@ npm install
 npm run dev
 ```
 
-`predev` / `prebuild` copy JupyterLab theme variable CSS into `public/jupyter/` because Turbopack does not support the `variables.css?raw` import used inside `@datalayer/jupyter-react`’s `JupyterLabCss` (you would otherwise see `[JupyterLabCss] Failed to load theme variables` and a broken editor theme).
+`predev` / `prebuild` run `ensure-env.mjs` (`.env.local` from `.env.example` when missing), then copy JupyterLab theme variable CSS into `public/jupyter/` because Turbopack does not support the `variables.css?raw` import used inside `@datalayer/jupyter-react`’s `JupyterLabCss` (you would otherwise see `[JupyterLabCss] Failed to load theme variables` and a broken editor theme).
 
 Open [http://localhost:3000](http://localhost:3000). The notebook connects to `NEXT_PUBLIC_JUPYTER_BASE_URL` using `NEXT_PUBLIC_JUPYTER_TOKEN` (must match the Jupyter server token).
 
 ## Scripts
 
-| Command      | Description              |
-| ------------ | ------------------------ |
+| Command             | Description                                     |
+| ------------------- | ----------------------------------------------- |
 | `npm run dev:stack` | Docker Jupyter + Next dev (recommended locally) |
-| `npm run dev`    | Development server       |
-| `npm run build`  | Production build         |
-| `npm run start`  | Start production server  |
-| `npm run lint`   | ESLint (Next flat config) |
+| `npm run dev`       | Development server                              |
+| `npm run build`     | Production build (`prebuild` ensures `.env.local` + theme CSS) |
+| `npm run start`     | Start production server                         |
+| `npm run prod`      | `npm run build && npm run start`                |
+| `npm run prod:stack` | Docker Jupyter + `build` + `start` (production parity with `dev:stack`) |
+| `npm run lint`      | ESLint (Next flat config)                       |
+| `make librequant-build` | From **repository root**: `npm ci` + production `next build` in `librequant/` only. |
+| `make compose-up`   | From **repository root**: `docker compose pull` + `up -d` (Jupyter from root `docker-compose.yml`). |
+| `make prod-build`   | Runs both targets above, then start Next with `cd librequant && npm start`. |
 
 ## Security notes
+
+Full detail: **[SECURITY.md](SECURITY.md)** (trusted machine / trusted browser, Jupyter token sensitivity, XSRF and CORS rationale).
 
 - **React Strict Mode is disabled** in `next.config.ts` so the Jupyter notebook runtime (Yjs + kernel comms) is not torn down twice in development; re-enable only if you accept noisy Yjs / “Comm not found” errors from `@datalayer/jupyter-react`.
 - JupyterLab 4’s notebook model always uses **Yjs** (`@jupyter/ydoc`); `collaborative: false` only turns off RTC. Benign Yjs / comm / LabIcon SVG messages in dev are filtered while the notebook is mounted (see `lib/jupyter-dev-noise.ts`); set `NEXT_PUBLIC_JUPYTER_VERBOSE=1` for full logs.
@@ -76,3 +150,41 @@ Open [http://localhost:3000](http://localhost:3000). The notebook connects to `N
 - Next.js 16.2 (App Router), React 19.2, TypeScript 5
 - Tailwind CSS v4, `next-themes`, Zustand, Lucide
 - Jupyter: `@datalayer/jupyter-react`, `@jupyterlab/services`
+
+## Source layout & architecture
+
+### Directory map
+
+| Path | Role |
+| ---- | ---- |
+| [`app/`](app/) | App Router pages, `layout.tsx`, `loading.tsx`, `error.tsx`, API route [`app/api/pypi/search/`](app/api/pypi/search/) for PyPI search. |
+| [`components/`](components/) | Feature UI: [`workbench-shell`](components/workbench-shell.tsx), notebook ([`jupyter-workbench`](components/notebook/jupyter-workbench.tsx), toolbar, cells), strategies editor, sidebars, package search. |
+| [`lib/`](lib/) | Shared logic: Jupyter integration, env, paths, hooks, stores, lifecycle events. |
+| [`public/jupyter/`](public/jupyter/) | Copied JupyterLab theme CSS (`predev` / `prebuild`); required for editor theming with Turbopack. |
+| [`scripts/ensure-env.mjs`](scripts/ensure-env.mjs) | `predev` / `prebuild`: `.env.local` from `.env.example` when missing. |
+| [`scripts/dev-stack.mjs`](scripts/dev-stack.mjs) | `npm run dev:stack`: Docker up, TCP + HTTP readiness, then `npm run dev`. |
+| [`scripts/prod-stack.mjs`](scripts/prod-stack.mjs) | `npm run prod:stack`: same, then `npm run build` + `npm run start`. |
+| [`docker-compose.yml`](../docker-compose.yml) | At repository root: local Jupyter image, `PYTHONPATH`, port **127.0.0.1:8888** only. |
+| [`instrumentation.ts`](instrumentation.ts) | Next.js instrumentation (dev-only noise handling for server sockets). |
+
+### Jupyter integration (high level)
+
+1. **`JupyterReachabilityStack`** ([`lib/jupyter-reachability-context.tsx`](lib/jupyter-reachability-context.tsx)) probes the server and wraps **`JupyterServiceManagerProvider`** ([`lib/jupyter-service-manager-context.tsx`](lib/jupyter-service-manager-context.tsx)) — one shared `ServiceManager` for the app.
+2. **`JupyterProvider` / session** ([`components/notebook/jupyter-provider.tsx`](components/notebook/jupyter-provider.tsx)) supplies config to `@datalayer/jupyter-react`.
+3. **`JupyterWorkbench`** embeds the notebook, wires [`useNotebookServerPersistence`](lib/use-notebook-server-persistence.ts), [`useStrategyPathInjection`](lib/use-strategy-path-injection.ts) (strategy `PYTHONPATH` or fallback `executeCode`), and kernel transport status.
+4. **Reset session** — [`notebookClearOutputsAndRestartKernel`](lib/notebook-session-reset.ts) clears outputs, restarts the kernel, waits for WebSocket + idle, emits [`kernel-lifecycle-events`](lib/kernel-lifecycle-events.ts).
+
+Strategy files on disk are managed with [`lib/strategy-contents.ts`](lib/strategy-contents.ts); notebooks with [`lib/jupyter-contents.ts`](lib/jupyter-contents.ts). Path safety and normalization: [`lib/jupyter-paths.ts`](lib/jupyter-paths.ts). All public env resolution: [`lib/env.ts`](lib/env.ts).
+
+### Inline documentation (code)
+
+- TypeScript **public exports** in `lib/` use **JSDoc** (`@param`, `@returns`, `@module`, `@remarks`) where they clarify contracts or security (e.g. path validation for kernel snippets).
+- **Notebook / Jupyter** modules include `@module` file headers describing the data flow they participate in.
+- Operational and threat-model detail is intentionally kept in **[SECURITY.md](SECURITY.md)**, not duplicated in code comments.
+
+### Related docs
+
+| Document | Contents |
+| -------- | -------- |
+| [SECURITY.md](SECURITY.md) | Jupyter token, CORS, localhost vs 127.0.0.1, CSP notes. |
+| [`.env.example`](.env.example) | Every `NEXT_PUBLIC_*` and Docker token with inline comments. |

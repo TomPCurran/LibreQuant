@@ -1,12 +1,15 @@
 "use client";
 
 import type { Contents } from "@jupyterlab/services";
+import type { Kernel as JupyterKernel } from "@jupyterlab/services";
 import { createContext, useContext } from "react";
 
 export type NotebookWorkbenchContextValue = {
   notebookServerPath: string;
   contents: Contents.IManager;
   onRenamed: (newPath: string) => void;
+  /** Kernel WebSocket transport; distinct from execution busy/idle in the notebook store. */
+  kernelConnectionStatus: JupyterKernel.ConnectionStatus | null;
 };
 
 const NotebookWorkbenchContext =

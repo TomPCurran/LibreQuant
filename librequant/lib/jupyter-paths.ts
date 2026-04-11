@@ -81,6 +81,7 @@ export function notebookStemFromPath(path: string): string {
 }
 
 const SAFE_NAME = /^[a-zA-Z0-9._\- ]+$/;
+const SAFE_DIR_NAME = /^[a-zA-Z0-9_\-]+$/;
 
 /**
  * Sanitize a user-provided notebook title to a single path segment ending in `.ipynb`.
@@ -99,4 +100,46 @@ export function toNotebookFilename(raw: string): string {
   }
   if (collapsed === "." || collapsed === "..") throw new Error("Invalid name.");
   return `${collapsed}.ipynb`;
+}
+
+/**
+ * Sanitize a user-provided filename to a single path segment ending in `.py`.
+ */
+export function toPythonFilename(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) throw new Error("Name is required.");
+  const withoutExt = trimmed.toLowerCase().endsWith(".py")
+    ? trimmed.slice(0, -".py".length)
+    : trimmed;
+  const collapsed = withoutExt.replace(/\s+/g, "_").trim();
+  if (!SAFE_DIR_NAME.test(collapsed)) {
+    throw new Error(
+      "Use only letters, numbers, underscore, or hyphen.",
+    );
+  }
+  if (collapsed === "." || collapsed === "..") throw new Error("Invalid name.");
+  return `${collapsed}.py`;
+}
+
+/**
+ * Sanitize a user-provided directory name to a safe single path segment
+ * (snake_case style: letters, numbers, underscore, hyphen).
+ */
+export function toSafeDirectoryName(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) throw new Error("Name is required.");
+  const collapsed = trimmed.replace(/\s+/g, "_");
+  if (!SAFE_DIR_NAME.test(collapsed)) {
+    throw new Error(
+      "Use only letters, numbers, underscore, or hyphen.",
+    );
+  }
+  if (collapsed === "." || collapsed === "..") throw new Error("Invalid name.");
+  return collapsed;
+}
+
+/** Display the last path segment (basename). */
+export function basenameFromPath(path: string): string {
+  const s = segments(path);
+  return s[s.length - 1] ?? "";
 }

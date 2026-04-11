@@ -10,7 +10,13 @@
 
 function shouldSuppressConsoleArgs(args: unknown[]): boolean {
   const s = args
-    .map((a) => (typeof a === "string" ? a : a instanceof Error ? a.message : String(a ?? "")))
+    .map((a) =>
+      typeof a === "string"
+        ? a
+        : a instanceof Error
+          ? a.message
+          : String(a ?? ""),
+    )
     .join(" ");
   return (
     s.includes("Invalid access") ||
@@ -22,7 +28,10 @@ function shouldSuppressConsoleArgs(args: unknown[]): boolean {
     s.includes("Requesting cell execution without any cell executor") ||
     s.includes("model is null") ||
     s.includes("cell.model") ||
-    s.includes("can't access property \"id\"")
+    s.includes('can\'t access property "id"') ||
+    s.includes("Cell execution timed out") ||
+    s.includes("Execution timeout") ||
+    s.includes("Failed to interrupt kernel")
   );
 }
 
@@ -33,7 +42,8 @@ function shouldSuppressRejection(reason: unknown): boolean {
     msg.includes("Comm not found") ||
     msg.includes("model is null") ||
     msg.includes("cell.model") ||
-    msg.includes('can\'t access property "id"')
+    msg.includes('can\'t access property "id"') ||
+    msg.includes("Execution timeout")
   );
 }
 
@@ -68,7 +78,9 @@ export function installJupyterDevNoiseSuppression(): () => void {
     }
   };
   const onWindowError = (e: ErrorEvent) => {
-    const msg = e.message ?? (e.error instanceof Error ? e.error.message : String(e.error ?? ""));
+    const msg =
+      e.message ??
+      (e.error instanceof Error ? e.error.message : String(e.error ?? ""));
     if (
       msg.includes("model is null") ||
       msg.includes("cell.model") ||

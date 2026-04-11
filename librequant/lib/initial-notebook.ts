@@ -21,7 +21,7 @@ export const initialNotebook: INotebookContent = {
       metadata: {},
       outputs: [],
       source: [
-        'print("LibreQuant Nexus")\n',
+        'print("LibreQuant")\n',
         "import matplotlib\n",
         "matplotlib.use('module://matplotlib_inline.backend_inline')\n",
         "import matplotlib.pyplot as plt\n",
