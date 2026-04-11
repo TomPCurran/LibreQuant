@@ -143,9 +143,13 @@ export function getStrategyLibraryRoot(): string {
  * When `true`, the Jupyter kernel environment already includes the strategies tree on
  * `PYTHONPATH` (e.g. Docker Compose). The app skips per-session `executeCode` `sys.path` injection.
  *
- * Set `NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH=1` in `.env.local` to match `docker-compose.yml`.
- * External Jupyter without this must set the same `PYTHONPATH` on the server or unset the flag to use client injection.
+ * - `NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH=0` — always use browser-side injection (fallback).
+ * - `NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH=1` — always assume server `PYTHONPATH`.
+ * - Unset — in **`development`**, default to server path (matches default Docker); in **`production`**, default to client injection unless `1` is set.
  */
 export function strategiesPathProvidedByServer(): boolean {
-  return process.env.NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH === "1";
+  const raw = process.env.NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH?.trim();
+  if (raw === "0") return false;
+  if (raw === "1") return true;
+  return process.env.NODE_ENV === "development";
 }

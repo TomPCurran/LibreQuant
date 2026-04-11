@@ -21,6 +21,7 @@ import { normalizeJupyterPath } from "@/lib/jupyter-paths";
 import {
   LIBREQUANT_KERNEL_RESTARTED,
   LIBREQUANT_KERNEL_RESTARTING,
+  LIBREQUANT_STRATEGY_CREATED,
   type LibreQuantKernelLifecycleDetail,
 } from "@/lib/kernel-lifecycle-events";
 import { ensureInitPyInAllStrategies } from "@/lib/strategy-contents";
@@ -57,13 +58,13 @@ function strategyPathSetupCode(): string {
 
 /** Small snippet; keep timeout modest so a wedged kernel does not block the queue for long. */
 const INJECT_EXECUTE_TIMEOUT_S = 12;
-const INJECT_RETRY_MS = 50;
-/** Per attempt loop inside {@link injectWithRetries} — notebook adapter often appears shortly after mount. */
-const INJECT_MAX_ATTEMPTS = 45;
+/** Per attempt inside {@link injectWithRetries} — give the notebook adapter time to register. */
+const INJECT_RETRY_MS = 200;
+const INJECT_MAX_ATTEMPTS = 10;
 /** After a full {@link injectWithRetries} failure, wait and run another wave (handles one-shot effect miss). */
 const INJECT_INTER_WAVE_MS = 2000;
-/** Max value of `injectWave` (0-based); 36 attempts total before giving up. */
-const MAX_INJECT_WAVE_INDEX = 35;
+/** Max value of `injectWave` (0-based); up to 4 waves before giving up. */
+const MAX_INJECT_WAVE_INDEX = 3;
 
 async function injectOnce(notebookId: string): Promise<boolean> {
   const adapter = notebookStore.getState().selectNotebookAdapter(notebookId);
@@ -144,6 +145,18 @@ export function useStrategyPathInjection(
     if (!contentsManager) return;
     void ensureInitPyInAllStrategies(contentsManager);
   }, [contentsManager, notebookId]);
+
+  /** Re-scan strategy dirs when a new package is created in the UI (PYTHONPATH/sys.path already includes the root). */
+  useEffect(() => {
+    if (!contentsManager) return;
+    const onCreated = () => {
+      void ensureInitPyInAllStrategies(contentsManager);
+    };
+    window.addEventListener(LIBREQUANT_STRATEGY_CREATED, onCreated);
+    return () => {
+      window.removeEventListener(LIBREQUANT_STRATEGY_CREATED, onCreated);
+    };
+  }, [contentsManager]);
 
   /** Strategies dir is on kernel `PYTHONPATH` (Docker); no `executeCode` injection. */
   useEffect(() => {

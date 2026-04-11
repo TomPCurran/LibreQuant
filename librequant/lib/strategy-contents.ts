@@ -12,6 +12,10 @@ import {
 import { deleteRecursive, ensureDirectory } from "@/lib/jupyter-contents";
 import { pMap } from "@/lib/concurrent";
 import { getStrategyLibraryRoot } from "@/lib/env";
+import {
+  LIBREQUANT_STRATEGY_CREATED,
+  type LibreQuantStrategyCreatedDetail,
+} from "@/lib/kernel-lifecycle-events";
 
 /**
  * Jupyter Contents API operations for the **strategies** tree: packages, `strategy.py`,
@@ -255,6 +259,15 @@ export async function createStrategyDirectory(
 
   const runsPath = joinJupyterPath(dirPath, "runs");
   await ensureDirectory(contents, r, runsPath);
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent<LibreQuantStrategyCreatedDetail>(
+        LIBREQUANT_STRATEGY_CREATED,
+        { detail: { dirPath } },
+      ),
+    );
+  }
 
   return dirPath;
 }

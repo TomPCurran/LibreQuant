@@ -71,9 +71,7 @@ export function LibreCellSidebar({
   const kernelStatus = useNotebookStore((s) =>
     notebookId ? s.selectKernelStatus(notebookId) : "idle",
   );
-  const strategyPathStatus = useWorkbenchStore((s) => s.strategyPathStatus);
   const isBusy = kernelStatus === "busy";
-  const runBlockedByStrategyPath = strategyPathStatus === "pending";
 
   const index = cellIndexForModel(model, notebookId);
 
@@ -117,12 +115,8 @@ export function LibreCellSidebar({
       <button
         type="button"
         aria-label="Run this cell"
-        title={
-          runBlockedByStrategyPath
-            ? "Wait until the strategies library path is ready on the kernel"
-            : "Run this cell"
-        }
-        disabled={isBusy || index < 0 || runBlockedByStrategyPath}
+        title="Run this cell"
+        disabled={isBusy || index < 0}
         onClick={() => void runThisCell()}
         className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-alpha/30 bg-alpha/10 text-alpha transition hover:bg-alpha/20 disabled:opacity-40"
       >

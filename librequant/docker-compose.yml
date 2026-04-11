@@ -7,20 +7,21 @@ services:
     volumes:
       # Persist notebooks under Jupyter’s default `work/` tree (see README / NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT)
       - jupyter-librequant-work:/home/jovyan/work
+      # For local strategy development on the host (uncomment; path is relative to this file):
+      # - ./strategies:/home/jovyan/work/librequant/strategies
     # Host loopback only: Jupyter not exposed on the LAN from this machine (see SECURITY.md).
     ports:
       - "127.0.0.1:8888:8888"
     command:
-      - start-notebook.sh
-      # Jupyter Server 2+: use IdentityProvider.token (ServerApp.token is deprecated)
-      - --IdentityProvider.token=devtoken
-      # XSRF disabled: Next (localhost:3000) and Jupyter (localhost:8888) are different origins;
-      # credentialed fetch + token auth still apply. For local dev only; do not expose port 8888 to untrusted networks.
-      - --ServerApp.disable_check_xsrf=True
-      # allow_origin is a single value; use a pattern so both localhost and 127.0.0.1 Next dev URLs work
-      - "--ServerApp.allow_origin_pat=^http://(localhost|127\\.0\\.0\\.1):3000$"
-      # @jupyterlab/services uses fetch(..., { credentials: 'include' }); browsers require this for CORS
-      - --ServerApp.allow_credentials=True
+      - bash
+      - -c
+      - |
+        mkdir -p /home/jovyan/work/librequant/strategies
+        exec start-notebook.sh \
+          --IdentityProvider.token=devtoken \
+          --ServerApp.disable_check_xsrf=True \
+          '--ServerApp.allow_origin_pat=^http://(localhost|127\.0\.0\.1):3000$' \
+          --ServerApp.allow_credentials=True
 
 volumes:
   jupyter-librequant-work:

@@ -3,7 +3,7 @@
 import "@/lib/ensure-webpack-public-path";
 import { notebookStore, useNotebookStore } from "@datalayer/jupyter-react";
 import { CirclePlus, Package, Pencil, Play, RotateCcw, Square } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useRef } from "react";
 import { getNotebookLibraryRoot } from "@/lib/env";
 import { renameNotebookPath } from "@/lib/jupyter-contents";
 import { notebookStemFromPath } from "@/lib/jupyter-paths";
@@ -64,7 +64,8 @@ export function LibreNotebookToolbar(props: { notebookId: string }) {
   const isBusy = kernelStatus === "busy";
   const [resetting, setResetting] = useState(false);
   const setPackageSearchOpen = useWorkbenchStore((s) => s.setPackageSearchOpen);
-  const runBlockedByStrategyPath = strategyPathStatus === "pending";
+  const [interruptPending, setInterruptPending] = useState(false);
+  const interruptCooldownRef = useRef(false);
 
   const [renaming, setRenaming] = useState(false);
   const [renameDraft, setRenameDraft] = useState("");
@@ -103,6 +104,20 @@ export function LibreNotebookToolbar(props: { notebookId: string }) {
       setRenameBusy(false);
     }
   }, [renameDraft, workbench]);
+
+  const onInterrupt = useCallback(() => {
+    if (!isBusy || interruptCooldownRef.current) return;
+    interruptCooldownRef.current = true;
+    setInterruptPending(true);
+    try {
+      notebookStore.getState().interrupt(notebookId);
+    } finally {
+      window.setTimeout(() => {
+        interruptCooldownRef.current = false;
+        setInterruptPending(false);
+      }, 450);
+    }
+  }, [isBusy, notebookId]);
 
   const onResetSession = useCallback(async () => {
     const adapter = notebookStore
@@ -205,13 +220,9 @@ export function LibreNotebookToolbar(props: { notebookId: string }) {
           <button
             type="button"
             aria-label="Run all cells"
-            title={
-              runBlockedByStrategyPath
-                ? "Wait until the strategies library path is ready on the kernel"
-                : "Run all cells from top to bottom"
-            }
+            title="Run all cells from top to bottom"
             onClick={() => notebookStore.getState().runAll(notebookId)}
-            disabled={isBusy || runBlockedByStrategyPath}
+            disabled={isBusy}
             className={`inline-flex h-11 w-11 items-center justify-center rounded-full border border-alpha/25 bg-alpha/5 text-alpha transition hover:opacity-90 disabled:opacity-50 ${
               isBusy ? "animate-soft-pulse" : ""
             }`}
@@ -222,8 +233,8 @@ export function LibreNotebookToolbar(props: { notebookId: string }) {
             type="button"
             aria-label="Interrupt kernel"
             title="Send interrupt to the kernel"
-            onClick={() => notebookStore.getState().interrupt(notebookId)}
-            disabled={!isBusy}
+            onClick={onInterrupt}
+            disabled={!isBusy || interruptPending}
             className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-foreground/15 bg-foreground/5 text-foreground transition hover:border-risk/40 hover:text-risk disabled:opacity-40"
           >
             <Square className="size-4" aria-hidden />

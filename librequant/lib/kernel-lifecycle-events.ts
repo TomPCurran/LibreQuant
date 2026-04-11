@@ -8,6 +8,13 @@
 export const LIBREQUANT_KERNEL_RESTARTING = "librequant-kernel-restarting";
 export const LIBREQUANT_KERNEL_RESTARTED = "librequant-kernel-restarted";
 
+/** Dispatched after a new strategy directory is created via the Contents API (e.g. strategy editor). */
+export const LIBREQUANT_STRATEGY_CREATED = "librequant-strategy-created";
+
 export type LibreQuantKernelLifecycleDetail = {
   notebookId: string;
+};
+
+export type LibreQuantStrategyCreatedDetail = {
+  dirPath: string;
 };

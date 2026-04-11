@@ -6,7 +6,7 @@ LibreQuant is a local-first, reactive research environment designed to bridge th
 
 Designed for the "Data-First" Quant, LibreQuant uses Abstract Syntax Tree (AST) discovery to turn static Python strategy files into dynamic, interactive workbanks in under 100ms.
 
-[Project Page](https://librequant.github.io/nexus) | [App developer docs](librequant/README.md) | [Discord](#) | [License: MIT](LICENSE)
+[Project Page](https://TomPCurran.github.io/LibreQuant/) | [App developer docs](librequant/README.md) | [Discord](#) | [License: MIT](LICENSE)
 
 ---
 
@@ -28,11 +28,11 @@ Traditional trading platforms are often "black boxes" or fragmented scripts. Lib
 
 ## 🚀 Quick Start (Docker)
 
-The fastest way to get the **Nexus** workbench running locally is from the `librequant/` app directory: `npm run dev:stack` starts Jupyter (Docker) and Next together. The app is **local-first**; see [`librequant/SECURITY.md`](librequant/SECURITY.md) for Jupyter token handling and network exposure.
+The fastest way to get the **LibreQuant** workbench running locally is from the `librequant/` app directory: `npm run dev:stack` starts Jupyter (Docker) and Next together. The app is **local-first**; see [`librequant/SECURITY.md`](librequant/SECURITY.md) for Jupyter token handling and network exposure.
 
 ```bash
-git clone https://github.com/librequant/nexus.git
-cd nexus/librequant
+git clone https://github.com/TomPCurran/LibreQuant.git
+cd LibreQuant/librequant
 npm install
 npm run dev:stack
 ```
