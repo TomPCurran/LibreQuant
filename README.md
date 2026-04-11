@@ -18,7 +18,7 @@ The Next.js workbench lives in **`librequant/`**. For setup (Jupyter via Docker,
 
 | Topic | Location |
 | ----- | -------- |
-| Install, `dev:stack`, configuration, routes, codebase map | [`librequant/README.md`](librequant/README.md) |
+| Install, `dev:stack`, production build (`NEXT_PUBLIC_*` at build time), configuration, routes, codebase map | [`librequant/README.md`](librequant/README.md) |
 | Threat model, Jupyter token, network exposure | [`librequant/SECURITY.md`](librequant/SECURITY.md) |
 | Environment variables (template) | [`librequant/.env.example`](librequant/.env.example) |
 | TypeScript module docs | JSDoc on `librequant/lib/**/*.ts` and key `components/` entry points |
@@ -46,4 +46,4 @@ npm install
 npm run dev:stack
 ```
 
-This uses [`librequant/docker-compose.yml`](librequant/docker-compose.yml) and creates `.env.local` from `.env.example` when missing. For manual steps and full configuration, read [`librequant/README.md`](librequant/README.md).
+This uses [`docker-compose.yml`](docker-compose.yml) at the repository root and creates `.env.local` from `.env.example` when missing. For manual steps and full configuration, read [`librequant/README.md`](librequant/README.md).
