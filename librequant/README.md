@@ -33,14 +33,14 @@ Layouts and global UI: [`app/layout.tsx`](app/layout.tsx) (fonts, theme, skip li
 
 ## Configuration
 
-Copy [`.env.example`](.env.example) to `.env.local` and adjust. Variables are documented inline in `.env.example`; the important ones:
+Copy [`.env.example`](.env.example) to `.env.local` and adjust (or rely on `predev` / `prebuild`, which create `.env.local` from `.env.example` when it is missing). Variables are documented inline in `.env.example`; the important ones:
 
 | Variable                            | Purpose                                                                                                                                                                                                                                                                                                         |
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `NEXT_PUBLIC_JUPYTER_BASE_URL`      | Jupyter Server HTTP origin (no trailing slash), e.g. `http://127.0.0.1:8888`. Prefer **127.0.0.1** with Docker’s default port map (`127.0.0.1:8888`); `localhost` can resolve to IPv6 first on macOS and fail while the server listens on IPv4 only. The app normalizes `localhost` → `127.0.0.1` for this URL. |
 | `NEXT_PUBLIC_JUPYTER_TOKEN`         | Login token for Jupyter; must match the server (e.g. Docker `JUPYTER_TOKEN`). **Treat as a password** — it is exposed to the browser.                                                                                                                                                                           |
 | `NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT` | Contents path for the notebook library relative to Jupyter root (default `work/librequant`).                                                                                                                                                                                                                    |
-| `NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH` | In **development**, the app assumes Docker’s `PYTHONPATH` by default (no `.env.local` required). Set to `0` to force browser `sys.path` injection; set to `1` to force server path in **production** builds. If you change `NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT` or `NEXT_PUBLIC_JUPYTER_USER_HOME`, update the `PYTHONPATH` line in `docker-compose.yml` so it matches `getJupyterUserHomeAbsolute()` + `getStrategyLibraryRoot()` in `lib/env.ts`. |
+| `NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH` | Default assumes Docker’s `PYTHONPATH` (Compose stack). Set to `0` only to force browser `sys.path` injection (e.g. Jupyter without matching `PYTHONPATH`). If you change `NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT` or `NEXT_PUBLIC_JUPYTER_USER_HOME`, update the `PYTHONPATH` line in the repository root `docker-compose.yml` so it matches `getJupyterUserHomeAbsolute()` + `getStrategyLibraryRoot()` in `lib/env.ts`. |
 | `NEXT_PUBLIC_JUPYTER_USER_HOME`     | Absolute Linux home inside the container for kernel snippets that join paths (default `/home/jovyan`).                                                                                                                                                                                                          |
 | `NEXT_PUBLIC_JUPYTER_VERBOSE`       | Set to `1` to disable dev log filtering in `lib/jupyter-dev-noise.ts`.                                                                                                                                                                                                                                          |
 
@@ -50,7 +50,7 @@ Runtime resolution and validation live in [`lib/env.ts`](lib/env.ts) (JSDoc on e
 
 **Scope:** This stack is **local-only** — a browser on your machine talking to Jupyter on **localhost**. It is not intended for public or multi-tenant deployment without additional hardening. See [SECURITY.md](SECURITY.md) for the threat model.
 
-From this directory:
+From the **repository root** (parent of `librequant/`):
 
 ```bash
 docker compose up
@@ -80,9 +80,19 @@ After `npm install`, from this directory:
 npm run dev:stack
 ```
 
-This runs `docker compose up -d`, waits until port **8888** accepts TCP, then until the Jupyter HTTP API responds on **`/api/kernels`**, creates `.env.local` from `.env.example` if it is missing, then starts `npm run dev` (Next on **http://localhost:3000**). The home workspace waits for the same HTTP probe before loading the notebook UI. Press **Ctrl+C** to stop the dev server and run `docker compose down` (omit stopping Jupyter with `npm run dev:stack -- --keep-jupyter`). To only start Next (Jupyter already running elsewhere): `npm run dev:stack -- --no-docker`.
+This runs `docker compose up -d` from the repo root, waits until port **8888** accepts TCP, then until the Jupyter HTTP API responds on **`/api/kernels`**, ensures `.env.local` (via `ensure-env.mjs`), then starts `npm run dev` (Next on **http://localhost:3000**). The home workspace waits for the same HTTP probe before loading the notebook UI. Press **Ctrl+C** to stop the dev server and run `docker compose down` (omit stopping Jupyter with `npm run dev:stack -- --keep-jupyter`). To only start Next (Jupyter already running elsewhere): `npm run dev:stack -- --no-docker`.
 
-**`--no-docker` / external Jupyter:** Either configure the same **`PYTHONPATH`** on that server (absolute path to your strategies root inside the server filesystem) and keep `NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH=1`, or set `NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH` unset/`0` so the app uses client-side `sys.path` injection again.
+**`--no-docker` / external Jupyter:** Either configure the same **`PYTHONPATH`** on that server (absolute path to your strategies root inside the server filesystem) and keep the default (or `NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH=1`), or set `NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH=0` so the app uses client-side `sys.path` injection.
+
+## Production build (`npm run build` + `npm run start`)
+
+`NEXT_PUBLIC_*` values are **inlined at `next build` time** into the client bundle. They are not re-read from `.env.local` when you run `npm run start` alone.
+
+1. Set or generate env **before** building: `prebuild` runs [`scripts/ensure-env.mjs`](scripts/ensure-env.mjs) and copies [`.env.example`](.env.example) → `.env.local` when `.env.local` is missing, so defaults apply during `next build`.
+2. Run **`npm run build`**, then **`npm run start`** (with Docker Jupyter already up, or use **`npm run prod:stack`** below).
+3. After changing any `NEXT_PUBLIC_*` value, run **`npm run build`** again before `npm run start`.
+
+**Convenience:** **`npm run prod`** runs `build` then `start`. **`npm run prod:stack`** runs [`scripts/prod-stack.mjs`](scripts/prod-stack.mjs): ensure env, `docker compose up -d`, wait for Jupyter, `npm run build`, then `npm run start` (same flags as dev stack: `--no-docker`, `--keep-jupyter`).
 
 ### Dev terminal: `socket hang up` / `ECONNRESET`
 
@@ -107,7 +117,7 @@ npm install
 npm run dev
 ```
 
-`predev` / `prebuild` copy JupyterLab theme variable CSS into `public/jupyter/` because Turbopack does not support the `variables.css?raw` import used inside `@datalayer/jupyter-react`’s `JupyterLabCss` (you would otherwise see `[JupyterLabCss] Failed to load theme variables` and a broken editor theme).
+`predev` / `prebuild` run `ensure-env.mjs` (`.env.local` from `.env.example` when missing), then copy JupyterLab theme variable CSS into `public/jupyter/` because Turbopack does not support the `variables.css?raw` import used inside `@datalayer/jupyter-react`’s `JupyterLabCss` (you would otherwise see `[JupyterLabCss] Failed to load theme variables` and a broken editor theme).
 
 Open [http://localhost:3000](http://localhost:3000). The notebook connects to `NEXT_PUBLIC_JUPYTER_BASE_URL` using `NEXT_PUBLIC_JUPYTER_TOKEN` (must match the Jupyter server token).
 
@@ -117,8 +127,10 @@ Open [http://localhost:3000](http://localhost:3000). The notebook connects to `N
 | ------------------- | ----------------------------------------------- |
 | `npm run dev:stack` | Docker Jupyter + Next dev (recommended locally) |
 | `npm run dev`       | Development server                              |
-| `npm run build`     | Production build                                |
+| `npm run build`     | Production build (`prebuild` ensures `.env.local` + theme CSS) |
 | `npm run start`     | Start production server                         |
+| `npm run prod`      | `npm run build && npm run start`                |
+| `npm run prod:stack` | Docker Jupyter + `build` + `start` (production parity with `dev:stack`) |
 | `npm run lint`      | ESLint (Next flat config)                       |
 | `make librequant-build` | From **repository root**: `npm ci` + production `next build` in `librequant/` only. |
 | `make compose-up`   | From **repository root**: `docker compose pull` + `up -d` (Jupyter from root `docker-compose.yml`). |
@@ -149,7 +161,9 @@ Full detail: **[SECURITY.md](SECURITY.md)** (trusted machine / trusted browser, 
 | [`components/`](components/) | Feature UI: [`workbench-shell`](components/workbench-shell.tsx), notebook ([`jupyter-workbench`](components/notebook/jupyter-workbench.tsx), toolbar, cells), strategies editor, sidebars, package search. |
 | [`lib/`](lib/) | Shared logic: Jupyter integration, env, paths, hooks, stores, lifecycle events. |
 | [`public/jupyter/`](public/jupyter/) | Copied JupyterLab theme CSS (`predev` / `prebuild`); required for editor theming with Turbopack. |
+| [`scripts/ensure-env.mjs`](scripts/ensure-env.mjs) | `predev` / `prebuild`: `.env.local` from `.env.example` when missing. |
 | [`scripts/dev-stack.mjs`](scripts/dev-stack.mjs) | `npm run dev:stack`: Docker up, TCP + HTTP readiness, then `npm run dev`. |
+| [`scripts/prod-stack.mjs`](scripts/prod-stack.mjs) | `npm run prod:stack`: same, then `npm run build` + `npm run start`. |
 | [`docker-compose.yml`](../docker-compose.yml) | At repository root: local Jupyter image, `PYTHONPATH`, port **127.0.0.1:8888** only. |
 | [`instrumentation.ts`](instrumentation.ts) | Next.js instrumentation (dev-only noise handling for server sockets). |
 

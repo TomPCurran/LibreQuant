@@ -4,12 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "node scripts/copy-jupyter-theme-css.mjs",
-    "prebuild": "node scripts/copy-jupyter-theme-css.mjs",
+    "predev": "node scripts/ensure-env.mjs && node scripts/copy-jupyter-theme-css.mjs",
+    "prebuild": "node scripts/ensure-env.mjs && node scripts/copy-jupyter-theme-css.mjs",
     "dev:stack": "node scripts/dev-stack.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "prod": "npm run build && npm run start",
+    "prod:stack": "node scripts/prod-stack.mjs",
     "lint": "eslint"
   },
   "dependencies": {
