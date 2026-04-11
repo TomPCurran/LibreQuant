@@ -22,9 +22,7 @@ function NavItem({
     <Link
       href={href}
       className={`block rounded-full px-2 py-2 text-xs font-medium transition hover:bg-foreground/5 ${
-        active
-          ? "text-alpha"
-          : "text-text-secondary hover:text-text-primary"
+        active ? "text-alpha" : "text-text-secondary hover:text-text-primary"
       }`}
     >
       {label}
@@ -35,8 +33,8 @@ function NavItem({
 export function WorkbenchShell({
   children,
   sectionEyebrow = "Workspace",
-  title = "The Local-First Workbench for Algorithmic Alpha.",
-  subtitle = "Python kernels via Jupyter protocol — the Assistant; you are the Architect.",
+  title = "",
+  subtitle = "",
 }: {
   children: React.ReactNode;
   /** Uppercase section label above the main region */
@@ -76,11 +74,7 @@ export function WorkbenchShell({
         {sidebarOpen ? (
           <>
             <nav className="flex flex-col gap-0.5" aria-label="Primary">
-              <NavItem
-                label="Workspace"
-                href="/"
-                active={pathname === "/"}
-              />
+              <NavItem label="Workspace" href="/" active={pathname === "/"} />
             </nav>
 
             <Suspense fallback={null}>

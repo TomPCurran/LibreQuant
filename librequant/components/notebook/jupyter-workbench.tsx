@@ -6,13 +6,13 @@ import {
   Notebook,
   notebookStore,
   useJupyterReactStore,
+  useNotebookStore,
 } from "@datalayer/jupyter-react";
 import { CellSidebarExtension } from "@datalayer/jupyter-react/notebook";
 import "@datalayer/jupyter-react/style";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -34,6 +34,7 @@ import {
   loadStoredNotebookContent,
 } from "@/lib/notebook-local-storage";
 import { notebookReactIdFromPath } from "@/lib/notebook-id";
+import { useKernelConnectionTransportStatus } from "@/lib/use-jupyter-kernel-connection-status";
 import { useNotebookServerPersistence } from "@/lib/use-notebook-server-persistence";
 import { useCodemirrorAutoCloseBrackets } from "@/lib/use-codemirror-auto-close-brackets";
 import { useJupyterServiceManager } from "@/lib/use-jupyter-service-manager";
@@ -41,6 +42,7 @@ import { useStrategyPathInjection } from "@/lib/use-strategy-path-injection";
 import { useWorkbenchStore } from "@/lib/stores/workbench-store";
 import { PackageSearchModal } from "@/components/package-search/package-search-modal";
 import { JupyterConnectingPanel } from "./jupyter-connecting-panel";
+import { NotebookLoadingState } from "./notebook-loading-state";
 import { useLibreJupyterSession } from "./jupyter-provider";
 import { JupyterThemeLink } from "./jupyter-theme-link";
 import "@/styles/jupyter-bridge.css";
@@ -125,13 +127,22 @@ function JupyterNotebookEditor({ notebookPath }: { notebookPath: string }) {
   const setJupyterColormode = useJupyterReactStore((s) => s.setColormode);
   const setActiveNotebookPath = useWorkbenchStore((s) => s.setActiveNotebookPath);
   const setActiveNotebookId = useWorkbenchStore((s) => s.setActiveNotebookId);
+  const setStrategyPathStatus = useWorkbenchStore((s) => s.setStrategyPathStatus);
 
   const hostRef = useRef<HTMLDivElement>(null);
 
   const notebookId = notebookReactIdFromPath(notebookPath);
 
-  const notebookReady =
-    !jupyter.kernelIsLoading && !!jupyter.serviceManager && !!jupyter.kernel;
+  /**
+   * `useLibreJupyterSession` does not start a kernel — the embedded `<Notebook>` owns it.
+   * Do not gate on `jupyter.kernelIsLoading`: when `startDefaultKernel` is false, datalayer’s
+   * store can keep `kernelIsLoading: true` until we clear it in {@link useLibreJupyterSession}.
+   */
+  const notebookReady = !!jupyter.serviceManager;
+
+  const notebookAdapter = useNotebookStore((s) =>
+    notebookId ? s.selectNotebookAdapter(notebookId) : undefined,
+  );
 
   const { nbformat, serverContentReady, loadError } = useNotebookServerPersistence(
     jupyter.serviceManager?.contents,
@@ -139,6 +150,10 @@ function JupyterNotebookEditor({ notebookPath }: { notebookPath: string }) {
     notebookPath,
     notebookReady,
     initialNotebook,
+  );
+
+  const kernelConnectionStatus = useKernelConnectionTransportStatus(
+    notebookAdapter?.kernel ?? undefined,
   );
 
   /**
@@ -165,7 +180,21 @@ function JupyterNotebookEditor({ notebookPath }: { notebookPath: string }) {
 
   ensureJupyterDevNoiseInstalledBeforeNotebook();
   useCodemirrorAutoCloseBrackets(hostRef, notebookReady);
-  useStrategyPathInjection(notebookId, serverContentReady, jupyter.serviceManager?.contents ?? null);
+  // Inject as soon as the kernel exists — do not wait for `serverContentReady`. Waiting tied
+  // injection to notebook JSON fetch; the UI could run imports before `sys.path` was set.
+  const strategyInjection = useStrategyPathInjection(
+    notebookId,
+    notebookReady,
+    jupyter.serviceManager?.contents ?? null,
+    kernelConnectionStatus === "connected",
+  );
+
+  useEffect(() => {
+    setStrategyPathStatus(strategyInjection.status);
+    return () => {
+      setStrategyPathStatus("pending");
+    };
+  }, [strategyInjection.status, setStrategyPathStatus]);
 
   const cellExtensions = useMemo(
     () => [
@@ -220,15 +249,24 @@ function JupyterNotebookEditor({ notebookPath }: { notebookPath: string }) {
   const workbenchCtx = useMemo(
     () =>
       contents
-        ? { notebookServerPath: notebookPath, contents, onRenamed }
+        ? {
+            notebookServerPath: notebookPath,
+            contents,
+            onRenamed,
+            kernelConnectionStatus,
+          }
         : null,
-    [notebookPath, contents, onRenamed],
+    [notebookPath, contents, onRenamed, kernelConnectionStatus],
   );
 
-  if (jupyter.kernelIsLoading || !jupyter.serviceManager || !jupyter.kernel) {
+  if (!jupyter.serviceManager) {
+    const connectVariant = "connecting_jupyter";
     return (
       <div className="lq-workbench-notebook-root w-full min-h-[min(72vh,840px)]">
-        <JupyterConnectingPanel baseUrl={baseUrl} />
+        <JupyterConnectingPanel
+          baseUrl={baseUrl}
+          variant={connectVariant}
+        />
       </div>
     );
   }
@@ -253,14 +291,8 @@ function JupyterNotebookEditor({ notebookPath }: { notebookPath: string }) {
 
   if (!serverContentReady || !workbenchCtx) {
     return (
-      <div className="lq-workbench-notebook-root flex min-h-[min(72vh,840px)] flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-        <Loader2
-          className="size-8 animate-spin text-text-secondary"
-          aria-hidden
-        />
-        <p className="text-sm font-light text-text-secondary">
-          Loading notebook from server…
-        </p>
+      <div className="lq-workbench-notebook-root w-full min-h-[min(72vh,840px)]">
+        <NotebookLoadingState phase="loading_notebook_file" />
       </div>
     );
   }
@@ -277,8 +309,7 @@ function JupyterNotebookEditor({ notebookPath }: { notebookPath: string }) {
                 key={notebookPath}
                 id={notebookId}
                 serviceManager={jupyter.serviceManager}
-                kernel={jupyter.kernel}
-                startDefaultKernel={false}
+                startDefaultKernel
                 nbformat={nbformat}
                 path={notebookPath}
                 height="min(72vh, 840px)"

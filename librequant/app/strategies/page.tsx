@@ -3,7 +3,7 @@ import { WorkbenchShell } from "@/components/workbench-shell";
 import { StrategyLibraryPanel } from "@/components/strategies/strategy-library-panel";
 
 export const metadata: Metadata = {
-  title: "Strategies | LibreQuant Nexus",
+  title: "Strategies | LibreQuant",
   description:
     "Create, edit, and manage Python strategy modules stored in your local workspace.",
 };

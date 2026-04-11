@@ -15,7 +15,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LibreQuant Nexus",
+  title: "LibreQuant",
   description: "Browser-based quantitative research workbench",
 };
 

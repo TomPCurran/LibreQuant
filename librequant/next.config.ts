@@ -1,11 +1,13 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
+import { normalizeLocalJupyterBaseUrl } from "./lib/env";
 
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 
-const jupyterOrigin =
-  process.env.NEXT_PUBLIC_JUPYTER_BASE_URL ?? "http://localhost:8888";
+const jupyterOrigin = normalizeLocalJupyterBaseUrl(
+  process.env.NEXT_PUBLIC_JUPYTER_BASE_URL ?? "http://127.0.0.1:8888",
+);
 const jupyterWs = jupyterOrigin.replace(/^http/, "ws");
 
 const isDev = process.env.NODE_ENV !== "production";
@@ -14,9 +16,12 @@ const connectSrc = isDev
   ? `'self' ${jupyterOrigin} ${jupyterWs} ws: wss:`
   : "'self'";
 
+/** JupyterLab / @datalayer may load AMD `require` from cdnjs for notebook widgets — blocked if omitted. */
+const scriptSrcExtra = " https://cdnjs.cloudflare.com";
+
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval'${scriptSrcExtra}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",

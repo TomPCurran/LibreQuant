@@ -13,13 +13,107 @@
 
 import { spawn, execSync } from "node:child_process";
 import { createConnection } from "node:net";
-import { copyFileSync, existsSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
+
+/**
+ * Parse `.env.local` for keys used before Next loads env (dev-stack runs outside Next).
+ * @returns {Record<string, string>}
+ */
+function readEnvLocalKeys() {
+  const envLocal = path.join(root, ".env.local");
+  if (!existsSync(envLocal)) {
+    return {};
+  }
+  try {
+    const text = readFileSync(envLocal, "utf8");
+    /** @type {Record<string, string>} */
+    const out = {};
+    for (const line of text.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eq = trimmed.indexOf("=");
+      if (eq <= 0) continue;
+      const key = trimmed.slice(0, eq).trim();
+      let val = trimmed.slice(eq + 1).trim();
+      if (
+        (val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))
+      ) {
+        val = val.slice(1, -1);
+      }
+      out[key] = val;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Align with `normalizeLocalJupyterBaseUrl` in `lib/env.ts` for the probe URL only.
+ * @param {string} raw
+ */
+function normalizeJupyterBaseUrlForProbe(raw) {
+  const trimmed = raw.trim().replace(/\/$/, "");
+  try {
+    const u = new URL(trimmed);
+    if (u.hostname === "localhost") {
+      u.hostname = "127.0.0.1";
+    }
+    return u.toString().replace(/\/$/, "");
+  } catch {
+    return "http://127.0.0.1:8888";
+  }
+}
+
+/**
+ * Wait until Jupyter Server answers HTTP (TCP alone is not enough).
+ * @param {string} baseUrl
+ * @param {string} token
+ * @param {number} timeoutMs
+ */
+async function waitForJupyterHttpReady(baseUrl, token, timeoutMs = 90_000) {
+  const origin = normalizeJupyterBaseUrlForProbe(baseUrl);
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const rootUrl = origin.endsWith("/") ? origin : `${origin}/`;
+      const url = new URL("api/kernels", rootUrl);
+      url.searchParams.set("token", token);
+      const res = await fetch(url.toString(), { cache: "no-store" });
+      if (res.ok) {
+        return;
+      }
+    } catch {
+      /* server still starting */
+    }
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  throw new Error(
+    `Timed out after ${timeoutMs}ms waiting for Jupyter HTTP API (${origin}/api/kernels)`,
+  );
+}
+
+function resolveJupyterProbeConfig() {
+  const fromFile = readEnvLocalKeys();
+  const token =
+    process.env.JUPYTER_TOKEN?.trim() ||
+    process.env.NEXT_PUBLIC_JUPYTER_TOKEN?.trim() ||
+    fromFile.JUPYTER_TOKEN?.trim() ||
+    fromFile.NEXT_PUBLIC_JUPYTER_TOKEN?.trim() ||
+    "devtoken";
+  const baseUrl =
+    process.env.NEXT_PUBLIC_JUPYTER_BASE_URL?.trim() ||
+    fromFile.NEXT_PUBLIC_JUPYTER_BASE_URL?.trim() ||
+    "http://127.0.0.1:8888";
+  return { baseUrl, token };
+}
 
 function waitForPort(port, host = "127.0.0.1", timeoutMs = 90_000) {
   return new Promise((resolve, reject) => {
@@ -74,16 +168,20 @@ function main() {
       process.exit(1);
     }
     console.log("[librequant] Waiting for Jupyter on port 8888…");
-    waitForPort(8888).then(
-      () => {
-        console.log("[librequant] Jupyter is reachable.");
+    const probe = resolveJupyterProbeConfig();
+    waitForPort(8888)
+      .then(() => {
+        console.log("[librequant] Port open; waiting for Jupyter HTTP API…");
+        return waitForJupyterHttpReady(probe.baseUrl, probe.token);
+      })
+      .then(() => {
+        console.log("[librequant] Jupyter HTTP API is ready.");
         startNext(keepJupyter, noDocker);
-      },
-      (err) => {
+      })
+      .catch((err) => {
         console.error(err instanceof Error ? err.message : err);
         process.exit(1);
-      },
-    );
+      });
   } else {
     startNext(keepJupyter, noDocker);
   }

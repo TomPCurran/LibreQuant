@@ -1,4 +1,4 @@
-# Security model (LibreQuant Nexus)
+# Security model (LibreQuant)
 
 This project is intended to run **entirely on a trusted local machine** (developer workstation). It is **not** designed for multi-tenant or public cloud deployment without substantial additional hardening.
 

@@ -1,6 +1,9 @@
 services:
   jupyter:
     image: quay.io/jupyter/scipy-notebook:latest
+    # Must match getJupyterUserHomeAbsolute() + getStrategyLibraryRoot() in lib/env.ts (default: /home/jovyan/work/librequant/strategies).
+    environment:
+      PYTHONPATH: /home/jovyan/work/librequant/strategies
     volumes:
       # Persist notebooks under Jupyter’s default `work/` tree (see README / NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT)
       - jupyter-librequant-work:/home/jovyan/work

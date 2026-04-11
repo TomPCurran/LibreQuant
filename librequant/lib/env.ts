@@ -10,6 +10,26 @@
  */
 
 /**
+ * Maps a Jupyter HTTP origin for local dev so CSP and runtime agree: replaces `localhost` with
+ * `127.0.0.1` (Docker often binds IPv4 only; macOS may resolve `localhost` to `::1` first).
+ *
+ * @internal Used by `next.config.ts` CSP `connect-src` and should stay aligned with {@link getPublicJupyterConfig}.
+ */
+export function normalizeLocalJupyterBaseUrl(raw: string): string {
+  const trimmed = raw.trim().replace(/\/$/, "");
+  try {
+    const u = new URL(trimmed);
+    if (u.hostname === "localhost") {
+      u.hostname = "127.0.0.1";
+      return u.toString().replace(/\/$/, "");
+    }
+  } catch {
+    /* invalid URL — return as trimmed */
+  }
+  return trimmed;
+}
+
+/**
  * Resolves base URL and authentication token for `@jupyterlab/services` / `@datalayer/jupyter-react`.
  *
  * @returns `baseUrl` without trailing slash; `token` non-empty in development (default `devtoken`)
@@ -18,14 +38,18 @@
  * @remarks
  * An **empty** `NEXT_PUBLIC_JUPYTER_TOKEN` must not be passed through: the library treats `""`
  * as an explicit token and skips built-in defaults, causing 403 on `/api/*`.
+ *
+ * **Local Docker:** `docker-compose` binds Jupyter to `127.0.0.1:8888` only. On macOS, `localhost`
+ * often resolves to IPv6 (`::1`) first, so `http://localhost:8888` can get `ECONNREFUSED` while
+ * `127.0.0.1:8888` works. We normalize `localhost` → `127.0.0.1` for the Jupyter origin only.
  */
 export function getPublicJupyterConfig(): {
   baseUrl: string;
   token: string;
 } {
   const raw =
-    process.env.NEXT_PUBLIC_JUPYTER_BASE_URL ?? "http://localhost:8888";
-  const baseUrl = raw.replace(/\/$/, "");
+    process.env.NEXT_PUBLIC_JUPYTER_BASE_URL ?? "http://127.0.0.1:8888";
+  const baseUrl = normalizeLocalJupyterBaseUrl(raw);
   const fromEnv = process.env.NEXT_PUBLIC_JUPYTER_TOKEN?.trim() ?? "";
   const token =
     fromEnv ||
@@ -113,4 +137,15 @@ export function getNotebookLibraryRoot(): string {
  */
 export function getStrategyLibraryRoot(): string {
   return `${getNotebookLibraryRoot()}/strategies`;
+}
+
+/**
+ * When `true`, the Jupyter kernel environment already includes the strategies tree on
+ * `PYTHONPATH` (e.g. Docker Compose). The app skips per-session `executeCode` `sys.path` injection.
+ *
+ * Set `NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH=1` in `.env.local` to match `docker-compose.yml`.
+ * External Jupyter without this must set the same `PYTHONPATH` on the server or unset the flag to use client injection.
+ */
+export function strategiesPathProvidedByServer(): boolean {
+  return process.env.NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH === "1";
 }

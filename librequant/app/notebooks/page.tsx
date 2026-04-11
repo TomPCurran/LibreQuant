@@ -3,7 +3,7 @@ import { WorkbenchShell } from "@/components/workbench-shell";
 import { NotebookLibraryPanel } from "@/components/notebooks/notebook-library-panel";
 
 export const metadata: Metadata = {
-  title: "Notebooks | LibreQuant Nexus",
+  title: "Notebooks | LibreQuant",
   description:
     "Create, upload, and open Jupyter notebooks stored in your local workspace.",
 };

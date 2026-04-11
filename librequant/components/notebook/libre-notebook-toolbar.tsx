@@ -8,8 +8,50 @@ import { getNotebookLibraryRoot } from "@/lib/env";
 import { renameNotebookPath } from "@/lib/jupyter-contents";
 import { notebookStemFromPath } from "@/lib/jupyter-paths";
 import { notebookClearOutputsAndRestartKernel } from "@/lib/notebook-session-reset";
-import { useWorkbenchStore } from "@/lib/stores/workbench-store";
+import {
+  useWorkbenchStore,
+  type StrategyPathStatus,
+} from "@/lib/stores/workbench-store";
+import { JupyterTransportBanner } from "@/components/notebook/jupyter-transport-banner";
 import { useNotebookWorkbench } from "@/components/notebook/notebook-workbench-context";
+
+function pythonKernelExecutionLabel(
+  kernelStatus: string | undefined,
+  resetting: boolean,
+): string {
+  if (resetting) return "Restarting Python kernel…";
+  switch (kernelStatus) {
+    case "busy":
+      return "Python kernel busy";
+    case "idle":
+      return "Python kernel idle";
+    case "starting":
+      return "Python kernel starting…";
+    case "restarting":
+      return "Python kernel restarting…";
+    case "dead":
+      return "Python kernel stopped";
+    default:
+      return kernelStatus
+        ? `Python kernel: ${kernelStatus}`
+        : "Python kernel";
+  }
+}
+
+function strategyPathToolbarHint(status: StrategyPathStatus): string | null {
+  switch (status) {
+    case "pending":
+      return "Strategies library: preparing path on the kernel…";
+    case "failed":
+      return "Strategies library: could not set path — you can still run cells; check kernel logs.";
+    case "ready":
+      return null;
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
+  }
+}
 
 export function LibreNotebookToolbar(props: { notebookId: string }) {
   const { notebookId } = props;
@@ -17,9 +59,12 @@ export function LibreNotebookToolbar(props: { notebookId: string }) {
   const kernelStatus = useNotebookStore((s) =>
     s.selectKernelStatus(notebookId),
   );
+  const strategyPathStatus = useWorkbenchStore((s) => s.strategyPathStatus);
+  const strategyHint = strategyPathToolbarHint(strategyPathStatus);
   const isBusy = kernelStatus === "busy";
   const [resetting, setResetting] = useState(false);
   const setPackageSearchOpen = useWorkbenchStore((s) => s.setPackageSearchOpen);
+  const runBlockedByStrategyPath = strategyPathStatus === "pending";
 
   const [renaming, setRenaming] = useState(false);
   const [renameDraft, setRenameDraft] = useState("");
@@ -65,7 +110,7 @@ export function LibreNotebookToolbar(props: { notebookId: string }) {
       .selectNotebookAdapter(notebookId);
     setResetting(true);
     try {
-      await notebookClearOutputsAndRestartKernel(adapter);
+      await notebookClearOutputsAndRestartKernel(adapter, notebookId);
     } catch (e) {
       console.error("[librequant] Reset session failed:", e);
     } finally {
@@ -75,6 +120,21 @@ export function LibreNotebookToolbar(props: { notebookId: string }) {
 
   return (
     <div className="flex flex-col gap-3 border-b border-black/6 bg-transparent px-0 py-2 dark:border-white/10">
+      {workbench ? (
+        <JupyterTransportBanner status={workbench.kernelConnectionStatus} />
+      ) : null}
+      {strategyHint ? (
+        <p
+          role="status"
+          className={`rounded-lg border px-3 py-2 text-xs font-light leading-snug ${
+            strategyPathStatus === "failed"
+              ? "border-amber-500/35 bg-amber-500/10 text-text-primary dark:border-amber-400/30 dark:bg-amber-400/10"
+              : "border-foreground/12 bg-foreground/5 text-text-secondary"
+          }`}
+        >
+          {strategyHint}
+        </p>
+      ) : null}
       {workbench ? (
         <div className="flex flex-col gap-2 border-b border-black/6 pb-3 dark:border-white/10">
           {renaming ? (
@@ -145,9 +205,13 @@ export function LibreNotebookToolbar(props: { notebookId: string }) {
           <button
             type="button"
             aria-label="Run all cells"
-            title="Run all cells from top to bottom"
+            title={
+              runBlockedByStrategyPath
+                ? "Wait until the strategies library path is ready on the kernel"
+                : "Run all cells from top to bottom"
+            }
             onClick={() => notebookStore.getState().runAll(notebookId)}
-            disabled={isBusy}
+            disabled={isBusy || runBlockedByStrategyPath}
             className={`inline-flex h-11 w-11 items-center justify-center rounded-full border border-alpha/25 bg-alpha/5 text-alpha transition hover:opacity-90 disabled:opacity-50 ${
               isBusy ? "animate-soft-pulse" : ""
             }`}
@@ -193,11 +257,12 @@ export function LibreNotebookToolbar(props: { notebookId: string }) {
           </button>
         </div>
         <p className="text-xs font-medium text-text-secondary">
-          {isBusy ? "Kernel busy" : "Kernel idle"}
+          {pythonKernelExecutionLabel(kernelStatus, resetting)}
         </p>
       </div>
       <p className="text-xs font-light leading-relaxed text-text-secondary">
-        Reset session clears outputs and restarts the kernel (not the Docker server).
+        Jupyter connection = browser to your Jupyter server. Python kernel = process that runs
+        cells. Reset session clears outputs and restarts the kernel only (not Docker).
         Run executes every cell in order. Each cell has its own play and delete controls;{" "}
         <kbd className="rounded-md border border-foreground/15 bg-foreground/5 px-1.5 py-0.5 font-mono-code text-[10px] text-foreground/90">
           Shift

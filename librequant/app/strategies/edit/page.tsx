@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { StrategyEditorShell } from "@/components/strategies/strategy-editor-shell";
 
 export const metadata = {
-  title: "Edit Strategy | LibreQuant Nexus",
+  title: "Edit Strategy | LibreQuant",
   description: "Edit a Python strategy file in the browser-based code editor.",
 };
 
