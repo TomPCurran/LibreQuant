@@ -19,14 +19,17 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(__dirname, "..");
+/** Next.js app directory (`librequant/`). */
+const librequantRoot = path.resolve(__dirname, "..");
+/** Repository root (`docker-compose.yml` lives here). */
+const repoRoot = path.resolve(__dirname, "../..");
 
 /**
  * Parse `.env.local` for keys used before Next loads env (dev-stack runs outside Next).
  * @returns {Record<string, string>}
  */
 function readEnvLocalKeys() {
-  const envLocal = path.join(root, ".env.local");
+  const envLocal = path.join(librequantRoot, ".env.local");
   if (!existsSync(envLocal)) {
     return {};
   }
@@ -141,8 +144,8 @@ function waitForPort(port, host = "127.0.0.1", timeoutMs = 90_000) {
 }
 
 function ensureEnvLocal() {
-  const envExample = path.join(root, ".env.example");
-  const envLocal = path.join(root, ".env.local");
+  const envExample = path.join(librequantRoot, ".env.example");
+  const envLocal = path.join(librequantRoot, ".env.local");
   if (!existsSync(envLocal) && existsSync(envExample)) {
     copyFileSync(envExample, envLocal);
     console.log("[librequant] Created .env.local from .env.example");
@@ -163,7 +166,7 @@ function main() {
   if (!noDocker) {
     console.log("[librequant] Starting Jupyter: docker compose up -d");
     try {
-      execSync("docker compose up -d", { cwd: root, stdio: "inherit" });
+      execSync("docker compose up -d", { cwd: repoRoot, stdio: "inherit" });
     } catch {
       process.exit(1);
     }
@@ -197,7 +200,7 @@ function startNext(keepJupyter, noDocker) {
   // Do not use shell: true — it breaks npm's PATH for scripts (`next` not in node_modules/.bin).
   const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
   const child = spawn(npmCmd, ["run", "dev"], {
-    cwd: root,
+    cwd: librequantRoot,
     stdio: "inherit",
     env: process.env,
   });
@@ -208,7 +211,7 @@ function startNext(keepJupyter, noDocker) {
     tornDown = true;
     console.log("\n[librequant] Stopping Jupyter: docker compose down");
     try {
-      execSync("docker compose down", { cwd: root, stdio: "inherit" });
+      execSync("docker compose down", { cwd: repoRoot, stdio: "inherit" });
     } catch {
       /* ignore */
     }

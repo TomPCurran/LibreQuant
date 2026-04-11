@@ -120,6 +120,9 @@ Open [http://localhost:3000](http://localhost:3000). The notebook connects to `N
 | `npm run build`     | Production build                                |
 | `npm run start`     | Start production server                         |
 | `npm run lint`      | ESLint (Next flat config)                       |
+| `make librequant-build` | From **repository root**: `npm ci` + production `next build` in `librequant/` only. |
+| `make compose-up`   | From **repository root**: `docker compose pull` + `up -d` (Jupyter from root `docker-compose.yml`). |
+| `make prod-build`   | Runs both targets above, then start Next with `cd librequant && npm start`. |
 
 ## Security notes
 
@@ -147,7 +150,7 @@ Full detail: **[SECURITY.md](SECURITY.md)** (trusted machine / trusted browser, 
 | [`lib/`](lib/) | Shared logic: Jupyter integration, env, paths, hooks, stores, lifecycle events. |
 | [`public/jupyter/`](public/jupyter/) | Copied JupyterLab theme CSS (`predev` / `prebuild`); required for editor theming with Turbopack. |
 | [`scripts/dev-stack.mjs`](scripts/dev-stack.mjs) | `npm run dev:stack`: Docker up, TCP + HTTP readiness, then `npm run dev`. |
-| [`docker-compose.yml`](docker-compose.yml) | Local Jupyter image, `PYTHONPATH`, port **127.0.0.1:8888** only. |
+| [`docker-compose.yml`](../docker-compose.yml) | At repository root: local Jupyter image, `PYTHONPATH`, port **127.0.0.1:8888** only. |
 | [`instrumentation.ts`](instrumentation.ts) | Next.js instrumentation (dev-only noise handling for server sockets). |
 
 ### Jupyter integration (high level)

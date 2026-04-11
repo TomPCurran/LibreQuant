@@ -32,8 +32,12 @@ export function normalizeLocalJupyterBaseUrl(raw: string): string {
 /**
  * Resolves base URL and authentication token for `@jupyterlab/services` / `@datalayer/jupyter-react`.
  *
- * @returns `baseUrl` without trailing slash; `token` non-empty in development (default `devtoken`)
- *   when `NEXT_PUBLIC_JUPYTER_TOKEN` is unset, empty in production unless set in env.
+ * @returns `baseUrl` without trailing slash. `token` is non-empty when `NEXT_PUBLIC_JUPYTER_TOKEN`
+ *   is set, or when it is unset and the app uses the default local Jupyter URL
+ *   (`http://127.0.0.1:8888` after {@link normalizeLocalJupyterBaseUrl}), in which case it defaults
+ *   to `devtoken` (including in production, matching Docker Compose). In production with a
+ *   non-default Jupyter origin and no token in env, `token` is empty — set `NEXT_PUBLIC_JUPYTER_TOKEN`
+ *   before `next build`. Development also defaults to `devtoken` when unset.
  *
  * @remarks
  * An **empty** `NEXT_PUBLIC_JUPYTER_TOKEN` must not be passed through: the library treats `""`
@@ -43,6 +47,13 @@ export function normalizeLocalJupyterBaseUrl(raw: string): string {
  * often resolves to IPv6 (`::1`) first, so `http://localhost:8888` can get `ECONNREFUSED` while
  * `127.0.0.1:8888` works. We normalize `localhost` → `127.0.0.1` for the Jupyter origin only.
  */
+/** Matches Docker Compose `--IdentityProvider.token` default for local stacks. */
+const DEFAULT_LOCAL_JUPYTER_TOKEN = "devtoken";
+
+function isDefaultLocalJupyterBaseUrl(baseUrl: string): boolean {
+  return baseUrl === "http://127.0.0.1:8888";
+}
+
 export function getPublicJupyterConfig(): {
   baseUrl: string;
   token: string;
@@ -53,7 +64,10 @@ export function getPublicJupyterConfig(): {
   const fromEnv = process.env.NEXT_PUBLIC_JUPYTER_TOKEN?.trim() ?? "";
   const token =
     fromEnv ||
-    (process.env.NODE_ENV === "development" ? "devtoken" : "");
+    (process.env.NODE_ENV === "development" ||
+    isDefaultLocalJupyterBaseUrl(baseUrl)
+      ? DEFAULT_LOCAL_JUPYTER_TOKEN
+      : "");
   return { baseUrl, token };
 }
 
@@ -78,7 +92,7 @@ function isSafeUnixPathForPythonEmbed(s: string): boolean {
  *
  * @returns Validated path from `NEXT_PUBLIC_JUPYTER_USER_HOME`, or `/home/jovyan` when unset or invalid.
  *
- * @remarks Default matches `quay.io/jupyter/scipy-notebook` and `librequant/docker-compose.yml`
+ * @remarks Default matches `quay.io/jupyter/scipy-notebook` and the repository root `docker-compose.yml`
  *   (`jupyter-librequant-work:/home/jovyan/work`). Override if the image uses a different user home.
  */
 export function getJupyterUserHomeAbsolute(): string {

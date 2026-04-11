@@ -10,11 +10,9 @@ const jupyterOrigin = normalizeLocalJupyterBaseUrl(
 );
 const jupyterWs = jupyterOrigin.replace(/^http/, "ws");
 
-const isDev = process.env.NODE_ENV !== "production";
-
-const connectSrc = isDev
-  ? `'self' ${jupyterOrigin} ${jupyterWs} ws: wss:`
-  : "'self'";
+// Allow the browser to reach Jupyter (HTTP + WS) in dev and production. Without the Jupyter
+// origin here, `next start` + local Docker Jupyter fails: CSP blocks fetch() to /api/kernels.
+const connectSrc = `'self' ${jupyterOrigin} ${jupyterWs} ws: wss:`;
 
 /** JupyterLab / @datalayer may load AMD `require` from cdnjs for notebook widgets — blocked if omitted. */
 const scriptSrcExtra = " https://cdnjs.cloudflare.com";
