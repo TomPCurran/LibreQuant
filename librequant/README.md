@@ -132,9 +132,10 @@ Open [http://localhost:3000](http://localhost:3000). The notebook connects to `N
 | `npm run prod`      | `npm run build && npm run start`                |
 | `npm run prod:stack` | Docker Jupyter + `build` + `start` (production parity with `dev:stack`) |
 | `npm run lint`      | ESLint (Next flat config)                       |
+| `make prod`         | From **repository root**: `npm ci` + `npm run prod:stack` — Docker Jupyter, production `next build`, `next start` (one command; Ctrl+C stops). |
 | `make librequant-build` | From **repository root**: `npm ci` + production `next build` in `librequant/` only. |
 | `make compose-up`   | From **repository root**: `docker compose pull` + `up -d` (Jupyter from root `docker-compose.yml`). |
-| `make prod-build`   | Runs both targets above, then start Next with `cd librequant && npm start`. |
+| `make prod-build`   | `librequant-build` + `compose-up` only (no Next server); then `cd librequant && npm start` yourself. |
 
 ## Security notes
 
