@@ -1,8 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SidebarNotebookTree } from "@/components/sidebar-notebook-tree";
+import { SidebarStrategyTree } from "@/components/sidebar-strategy-tree";
 import { useWorkbenchStore } from "@/lib/stores/workbench-store";
 import { LineChart, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
@@ -71,21 +74,28 @@ export function WorkbenchShell({
           ) : null}
         </div>
         {sidebarOpen ? (
-          <nav className="flex flex-col gap-0.5" aria-label="Primary">
-            <NavItem
-              label="Workspace"
-              href="/"
-              active={pathname === "/"}
-            />
-            <NavItem
-              label="Notebooks"
-              href="/notebooks"
-              active={pathname === "/notebooks"}
-            />
-            <NavItem label="Strategy Library" href="#" />
-            <NavItem label="Data Ingestors" href="#" />
-            <NavItem label="Portfolio Monitor" href="#" />
-          </nav>
+          <>
+            <nav className="flex flex-col gap-0.5" aria-label="Primary">
+              <NavItem
+                label="Workspace"
+                href="/"
+                active={pathname === "/"}
+              />
+            </nav>
+
+            <Suspense fallback={null}>
+              <SidebarNotebookTree />
+            </Suspense>
+
+            <Suspense fallback={null}>
+              <SidebarStrategyTree />
+            </Suspense>
+
+            <nav className="mt-1 flex flex-col gap-0.5" aria-label="Secondary">
+              <NavItem label="Data Ingestors" href="#" />
+              <NavItem label="Portfolio Monitor" href="#" />
+            </nav>
+          </>
         ) : null}
       </aside>
 

@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -36,6 +37,7 @@ import { notebookReactIdFromPath } from "@/lib/notebook-id";
 import { useNotebookServerPersistence } from "@/lib/use-notebook-server-persistence";
 import { useCodemirrorAutoCloseBrackets } from "@/lib/use-codemirror-auto-close-brackets";
 import { useJupyterServiceManager } from "@/lib/use-jupyter-service-manager";
+import { useStrategyPathInjection } from "@/lib/use-strategy-path-injection";
 import { useWorkbenchStore } from "@/lib/stores/workbench-store";
 import { PackageSearchModal } from "@/components/package-search/package-search-modal";
 import { JupyterConnectingPanel } from "./jupyter-connecting-panel";
@@ -139,21 +141,32 @@ function JupyterNotebookEditor({ notebookPath }: { notebookPath: string }) {
     initialNotebook,
   );
 
-  /** Global `notebookStore` survives React remounts — clear when switching files. */
-  const notebookStorePathRef = useRef<string>("");
-  if (notebookStorePathRef.current !== notebookPath) {
-    notebookStore.getState().reset();
-    notebookStorePathRef.current = notebookPath;
-  }
+  /**
+   * Guard `notebookStore.reset()` so it only fires on *real* unmounts,
+   * not on React 18 Strict Mode's synthetic cleanup-then-remount cycle.
+   * Without this, dev-mode mounts interrupt the kernel immediately,
+   * killing any cells queued for execution.
+   */
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
-  /** Dev-only console filtering; keep installed for the whole editor session (not only when kernel is ready). */
+  const notebookStorePathRef = useRef<string>("");
+  useEffect(() => {
+    if (notebookStorePathRef.current && notebookStorePathRef.current !== notebookPath) {
+      notebookStore.getState().reset();
+    }
+    notebookStorePathRef.current = notebookPath;
+  }, [notebookPath]);
+
   ensureJupyterDevNoiseInstalledBeforeNotebook();
   useCodemirrorAutoCloseBrackets(hostRef, notebookReady);
+  useStrategyPathInjection(notebookId, serverContentReady, jupyter.serviceManager?.contents ?? null);
 
-  /**
-   * Fresh extension per notebook session. A module-singleton extension reused across navigations
-   * left JupyterLab holding stale cell refs (`cell.model` null / Yjs errors on route changes).
-   */
   const cellExtensions = useMemo(
     () => [
       new CellSidebarExtension({
@@ -161,27 +174,25 @@ function JupyterNotebookEditor({ notebookPath }: { notebookPath: string }) {
         sidebarWidth: 48,
       }),
     ],
-    // New extension when file changes; factory closure does not reference the path.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- session identity
     [notebookPath],
   );
 
-  /**
-   * Cell sidebars can mount outside the `Notebook` React subtree, so they cannot rely on context.
-   * Update the workbench store during render so the first paint sees `activeNotebookId` (before effects run).
-   */
-  useWorkbenchStore.setState({
-    activeNotebookPath: notebookPath,
-    activeNotebookId: notebookId,
-  });
-
   useLayoutEffect(() => {
+    setActiveNotebookPath(notebookPath);
+    setActiveNotebookId(notebookId);
     return () => {
       setActiveNotebookPath(null);
       setActiveNotebookId(null);
-      notebookStore.getState().reset();
+      // Skip reset during Strict Mode synthetic cleanup — the component
+      // is about to remount immediately, so interrupting the kernel is destructive.
+      queueMicrotask(() => {
+        if (!mountedRef.current) {
+          notebookStore.getState().reset();
+        }
+      });
     };
-  }, [setActiveNotebookPath, setActiveNotebookId]);
+  }, [notebookPath, notebookId, setActiveNotebookPath, setActiveNotebookId]);
 
   const themeColormode = resolvedTheme === "dark" ? "dark" : "light";
   useLayoutEffect(() => {
@@ -197,6 +208,22 @@ function JupyterNotebookEditor({ notebookPath }: { notebookPath: string }) {
       teardownJupyterDevNoiseFromWorkbench();
     };
   }, []);
+
+  const onRenamed = useCallback(
+    (newPath: string) => {
+      router.replace(`/?path=${encodeURIComponent(newPath)}`);
+    },
+    [router],
+  );
+
+  const contents = jupyter.serviceManager?.contents ?? null;
+  const workbenchCtx = useMemo(
+    () =>
+      contents
+        ? { notebookServerPath: notebookPath, contents, onRenamed }
+        : null,
+    [notebookPath, contents, onRenamed],
+  );
 
   if (jupyter.kernelIsLoading || !jupyter.serviceManager || !jupyter.kernel) {
     return (
@@ -224,7 +251,7 @@ function JupyterNotebookEditor({ notebookPath }: { notebookPath: string }) {
     );
   }
 
-  if (!serverContentReady) {
+  if (!serverContentReady || !workbenchCtx) {
     return (
       <div className="lq-workbench-notebook-root flex min-h-[min(72vh,840px)] flex-col items-center justify-center gap-3 px-6 py-12 text-center">
         <Loader2
@@ -238,20 +265,10 @@ function JupyterNotebookEditor({ notebookPath }: { notebookPath: string }) {
     );
   }
 
-  const onRenamed = (newPath: string) => {
-    router.replace(`/?path=${encodeURIComponent(newPath)}`);
-  };
-
   return (
     <div className="lq-workbench-notebook-root w-full min-h-[min(72vh,840px)]">
       <JupyterReactTheme loadJupyterLabCss={false} backgroundColor="transparent">
-        <NotebookWorkbenchProvider
-          value={{
-            notebookServerPath: notebookPath,
-            contents: jupyter.serviceManager.contents,
-            onRenamed,
-          }}
-        >
+        <NotebookWorkbenchProvider value={workbenchCtx}>
           <JupyterThemeLink />
           <PackageSearchModal notebookId={notebookId} />
           <OutputSanitizer containerRef={hostRef}>

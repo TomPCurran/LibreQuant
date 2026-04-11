@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { Providers } from "@/components/providers";
 import { ThemeProvider } from "@/components/theme-provider";
 
 const inter = Inter({
@@ -39,7 +40,7 @@ export default function RootLayout({
           <a href="#main" className="skip-link">
             Skip to content
           </a>
-          {children}
+          <Providers>{children}</Providers>
         </ThemeProvider>
       </body>
     </html>

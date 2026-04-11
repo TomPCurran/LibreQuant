@@ -22,7 +22,9 @@ function shouldSuppressConsoleArgs(args: unknown[]): boolean {
     s.includes("Requesting cell execution without any cell executor") ||
     s.includes("model is null") ||
     s.includes("cell.model") ||
-    s.includes("can't access property \"id\"")
+    s.includes("can't access property \"id\"") ||
+    s.includes("Cell execution timed out") ||
+    s.includes("Execution timeout")
   );
 }
 
@@ -33,7 +35,8 @@ function shouldSuppressRejection(reason: unknown): boolean {
     msg.includes("Comm not found") ||
     msg.includes("model is null") ||
     msg.includes("cell.model") ||
-    msg.includes('can\'t access property "id"')
+    msg.includes('can\'t access property "id"') ||
+    msg.includes("Execution timeout")
   );
 }
 
