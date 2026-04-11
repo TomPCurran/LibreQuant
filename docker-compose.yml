@@ -1,0 +1,27 @@
+services:
+  jupyter:
+    image: quay.io/jupyter/scipy-notebook:latest
+    # Must match getJupyterUserHomeAbsolute() + getStrategyLibraryRoot() in lib/env.ts (default: /home/jovyan/work/librequant/strategies).
+    environment:
+      PYTHONPATH: /home/jovyan/work/librequant/strategies
+    volumes:
+      # Persist notebooks under Jupyter’s default `work/` tree (see README / NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT)
+      - jupyter-librequant-work:/home/jovyan/work
+      # For local strategy development on the host (uncomment; path is relative to this file):
+      # - librequant/strategies:/home/jovyan/work/librequant/strategies
+    # Host loopback only: Jupyter not exposed on the LAN from this machine (see SECURITY.md).
+    ports:
+      - "127.0.0.1:8888:8888"
+    command:
+      - bash
+      - -c
+      - |
+        mkdir -p /home/jovyan/work/librequant/strategies
+        exec start-notebook.sh \
+          --IdentityProvider.token=devtoken \
+          --ServerApp.disable_check_xsrf=True \
+          '--ServerApp.allow_origin_pat=^http://(localhost|127\.0\.0\.1):3000$' \
+          --ServerApp.allow_credentials=True
+
+volumes:
+  jupyter-librequant-work:
