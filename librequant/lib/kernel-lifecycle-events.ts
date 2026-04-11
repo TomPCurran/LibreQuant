@@ -1,8 +1,15 @@
 /**
- * Browser CustomEvents so hooks can react when the kernel is restarted explicitly
- * (e.g. “Reset session”). `@datalayer/jupyter-react` may not surface a reliable
- * `"restarting"` status for every restart, so we broadcast from
- * {@link notebookClearOutputsAndRestartKernel}.
+ * @module kernel-lifecycle-events
+ *
+ * Browser `CustomEvent` names and payload types for cross-hook coordination:
+ *
+ * - **Kernel lifecycle** — emitted by {@link notebookClearOutputsAndRestartKernel} so
+ *   `useStrategyPathInjection` and similar logic avoid racing `executeCode` during restart.
+ * - **Strategy creation** — emitted after `createStrategyDirectory` in `strategy-contents.ts` so the notebook
+ *   workbench can refresh `__init__.py` hygiene via the Contents API without restarting the kernel.
+ *
+ * `@datalayer/jupyter-react` may not surface a reliable `"restarting"` status for every restart,
+ * so kernel events are dispatched explicitly from {@link notebookClearOutputsAndRestartKernel}.
  */
 
 export const LIBREQUANT_KERNEL_RESTARTING = "librequant-kernel-restarting";

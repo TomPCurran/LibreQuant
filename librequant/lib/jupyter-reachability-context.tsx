@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * @module jupyter-reachability-context
+ *
+ * Probes the Jupyter Server HTTP API (`GET /api/kernels`) on an interval, exposes
+ * `probeComplete` + `reachable` to gate UI (e.g. home workspace), remounts
+ * {@link JupyterServiceManagerProvider} when reachability flips so `ServiceManager` is not stale,
+ * and renders a sticky banner when the server is down.
+ */
+
 import {
   createContext,
   useContext,

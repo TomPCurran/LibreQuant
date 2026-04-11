@@ -15,6 +15,17 @@ The UI separates three layers so it is clear what is doing the work:
 
 Loading screens spell out which phase is active (connecting to the server vs starting the kernel vs loading the file). See [`lib/jupyter-notebook-phase.ts`](lib/jupyter-notebook-phase.ts) for the shared copy.
 
+## Application routes
+
+| Route | Purpose |
+| ----- | ------- |
+| [`app/page.tsx`](app/page.tsx) | Home / notebook workbench (`HomeWorkspace`). Opens notebooks via `?path=` query. |
+| [`app/notebooks/page.tsx`](app/notebooks/page.tsx) | Notebook library: list and open `.ipynb` files under the Jupyter contents root. |
+| [`app/strategies/page.tsx`](app/strategies/page.tsx) | Strategy library browser. |
+| [`app/strategies/edit/page.tsx`](app/strategies/edit/page.tsx) | Strategy editor (files under the strategies tree via Contents API). |
+
+Layouts and global UI: [`app/layout.tsx`](app/layout.tsx) (fonts, theme, skip link); client providers in [`components/providers.tsx`](components/providers.tsx) (`JupyterReachabilityStack`).
+
 ## Prerequisites
 
 - Node.js 20+
@@ -125,17 +136,38 @@ Full detail: **[SECURITY.md](SECURITY.md)** (trusted machine / trusted browser, 
 - Tailwind CSS v4, `next-themes`, Zustand, Lucide
 - Jupyter: `@datalayer/jupyter-react`, `@jupyterlab/services`
 
-## Source layout & inline docs
+## Source layout & architecture
 
-| Area                                                                                 | Role                                                                            |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| [`app/`](app/)                                                                       | Next.js App Router routes (`notebooks`, `strategies`, layouts).                 |
-| [`components/`](components/)                                                         | UI: workbench shell, notebook host, strategy editor, sidebars.                  |
-| [`lib/env.ts`](lib/env.ts)                                                           | Public env helpers for Jupyter URLs, token, notebook/strategy roots, user home. |
-| [`lib/jupyter-contents.ts`](lib/jupyter-contents.ts)                                 | Notebook tree CRUD via Jupyter Contents API.                                    |
-| [`lib/strategy-contents.ts`](lib/strategy-contents.ts)                               | Strategy packages and files via Contents API.                                   |
-| [`lib/jupyter-paths.ts`](lib/jupyter-paths.ts)                                       | Path normalization and safety checks for contents paths.                        |
-| [`lib/jupyter-service-manager-context.tsx`](lib/jupyter-service-manager-context.tsx) | Shared `ServiceManager` React context.                                          |
-| [`lib/use-strategy-path-injection.ts`](lib/use-strategy-path-injection.ts)           | Kernel `sys.path` injection for strategies.                                     |
+### Directory map
 
-Public TypeScript APIs use **JSDoc** (`@param`, `@returns`, `@remarks` where it helps). Security detail remains in [SECURITY.md](SECURITY.md).
+| Path | Role |
+| ---- | ---- |
+| [`app/`](app/) | App Router pages, `layout.tsx`, `loading.tsx`, `error.tsx`, API route [`app/api/pypi/search/`](app/api/pypi/search/) for PyPI search. |
+| [`components/`](components/) | Feature UI: [`workbench-shell`](components/workbench-shell.tsx), notebook ([`jupyter-workbench`](components/notebook/jupyter-workbench.tsx), toolbar, cells), strategies editor, sidebars, package search. |
+| [`lib/`](lib/) | Shared logic: Jupyter integration, env, paths, hooks, stores, lifecycle events. |
+| [`public/jupyter/`](public/jupyter/) | Copied JupyterLab theme CSS (`predev` / `prebuild`); required for editor theming with Turbopack. |
+| [`scripts/dev-stack.mjs`](scripts/dev-stack.mjs) | `npm run dev:stack`: Docker up, TCP + HTTP readiness, then `npm run dev`. |
+| [`docker-compose.yml`](docker-compose.yml) | Local Jupyter image, `PYTHONPATH`, port **127.0.0.1:8888** only. |
+| [`instrumentation.ts`](instrumentation.ts) | Next.js instrumentation (dev-only noise handling for server sockets). |
+
+### Jupyter integration (high level)
+
+1. **`JupyterReachabilityStack`** ([`lib/jupyter-reachability-context.tsx`](lib/jupyter-reachability-context.tsx)) probes the server and wraps **`JupyterServiceManagerProvider`** ([`lib/jupyter-service-manager-context.tsx`](lib/jupyter-service-manager-context.tsx)) — one shared `ServiceManager` for the app.
+2. **`JupyterProvider` / session** ([`components/notebook/jupyter-provider.tsx`](components/notebook/jupyter-provider.tsx)) supplies config to `@datalayer/jupyter-react`.
+3. **`JupyterWorkbench`** embeds the notebook, wires [`useNotebookServerPersistence`](lib/use-notebook-server-persistence.ts), [`useStrategyPathInjection`](lib/use-strategy-path-injection.ts) (strategy `PYTHONPATH` or fallback `executeCode`), and kernel transport status.
+4. **Reset session** — [`notebookClearOutputsAndRestartKernel`](lib/notebook-session-reset.ts) clears outputs, restarts the kernel, waits for WebSocket + idle, emits [`kernel-lifecycle-events`](lib/kernel-lifecycle-events.ts).
+
+Strategy files on disk are managed with [`lib/strategy-contents.ts`](lib/strategy-contents.ts); notebooks with [`lib/jupyter-contents.ts`](lib/jupyter-contents.ts). Path safety and normalization: [`lib/jupyter-paths.ts`](lib/jupyter-paths.ts). All public env resolution: [`lib/env.ts`](lib/env.ts).
+
+### Inline documentation (code)
+
+- TypeScript **public exports** in `lib/` use **JSDoc** (`@param`, `@returns`, `@module`, `@remarks`) where they clarify contracts or security (e.g. path validation for kernel snippets).
+- **Notebook / Jupyter** modules include `@module` file headers describing the data flow they participate in.
+- Operational and threat-model detail is intentionally kept in **[SECURITY.md](SECURITY.md)**, not duplicated in code comments.
+
+### Related docs
+
+| Document | Contents |
+| -------- | -------- |
+| [SECURITY.md](SECURITY.md) | Jupyter token, CORS, localhost vs 127.0.0.1, CSP notes. |
+| [`.env.example`](.env.example) | Every `NEXT_PUBLIC_*` and Docker token with inline comments. |

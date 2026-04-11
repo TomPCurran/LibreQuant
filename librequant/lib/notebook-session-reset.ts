@@ -1,3 +1,12 @@
+/**
+ * @module notebook-session-reset
+ *
+ * Coordinates “Reset session”: clear outputs, restart the notebook-owned kernel, wait until the
+ * kernel WebSocket is connected and idle again, and broadcast {@link LIBREQUANT_KERNEL_RESTARTING} /
+ * {@link LIBREQUANT_KERNEL_RESTARTED} so strategy-path hooks do not race reconnecting channels.
+ *
+ * @see {@link notebookClearOutputsAndRestartKernel}
+ */
 import type { NotebookAdapter } from "@datalayer/jupyter-react";
 import { notebookStore } from "@datalayer/jupyter-react";
 import {

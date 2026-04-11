@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * Home route shell: resolves `?path=` for the active notebook, gates the notebook workbench on
+ * `useJupyterReachability()` (`probeComplete` / `reachable`), and lazy-loads the notebook bundle
+ * via `next/dynamic`.
+ */
+
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";

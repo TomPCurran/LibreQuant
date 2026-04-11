@@ -21,6 +21,9 @@ import {
  * Jupyter Contents API operations for the **strategies** tree: packages, `strategy.py`,
  * `meta.json`, `__init__.py`, and bounded-concurrency listing.
  *
+ * After creating a new strategy directory, dispatches {@link LIBREQUANT_STRATEGY_CREATED} so
+ * notebook-side hooks can refresh package hygiene without a kernel restart.
+ *
  * @module strategy-contents
  */
 

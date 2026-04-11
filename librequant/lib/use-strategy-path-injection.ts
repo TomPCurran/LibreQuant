@@ -1,9 +1,10 @@
 "use client";
 
 /**
- * Injects the strategies library onto the notebook kernel's `sys.path` as soon as the kernel
- * can accept execution (retries until the notebook adapter exists — avoids racing user cells),
- * and ensures `__init__.py` exists under each strategy folder via the Jupyter Contents API.
+ * Injects the strategies library onto the notebook kernel's `sys.path` when
+ * {@link strategiesPathProvidedByServer} is false (retries until the notebook adapter exists).
+ * When true (default in development), relies on server `PYTHONPATH` and only runs Contents API
+ * hygiene (`ensureInitPyInAllStrategies`, plus refresh on {@link LIBREQUANT_STRATEGY_CREATED}).
  *
  * @module use-strategy-path-injection
  */

@@ -12,7 +12,16 @@ Designed for the "Data-First" Quant, LibreQuant uses Abstract Syntax Tree (AST) 
 
 ## Developers
 
-The Next.js workbench lives in **`librequant/`**. For setup (Jupyter via Docker, env vars, scripts, and security notes), see **[`librequant/README.md`](librequant/README.md)** — that file is the canonical guide for building and running the app. Security and Jupyter token handling: [`librequant/SECURITY.md`](librequant/SECURITY.md).
+The Next.js workbench lives in **`librequant/`**. For setup (Jupyter via Docker, env vars, scripts, application routes, source layout, and Jupyter integration overview), see **[`librequant/README.md`](librequant/README.md)** — that file is the canonical guide for building and running the app.
+
+**Documentation index**
+
+| Topic | Location |
+| ----- | -------- |
+| Install, `dev:stack`, configuration, routes, codebase map | [`librequant/README.md`](librequant/README.md) |
+| Threat model, Jupyter token, network exposure | [`librequant/SECURITY.md`](librequant/SECURITY.md) |
+| Environment variables (template) | [`librequant/.env.example`](librequant/.env.example) |
+| TypeScript module docs | JSDoc on `librequant/lib/**/*.ts` and key `components/` entry points |
 
 ---
 
