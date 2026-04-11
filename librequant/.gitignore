@@ -1,4 +1,5 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Next.js app — build & deps (paths relative to this directory)
+# OS, editors, Cursor, and repo-wide rules: see ../.gitignore
 
 # dependencies
 /node_modules
@@ -24,7 +25,6 @@
 /build
 
 # misc
-.DS_Store
 *.pem
 
 # debug
@@ -44,7 +44,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.DS_Store
 gemini_copy/
-.agents
-.vscode
