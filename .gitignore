@@ -120,3 +120,6 @@ librequant/public/jupyter/variables-*.css
 project_notes/
 .agents/
 .vscode/
+
+# Planning doc lives only under project_notes/ locally — do not re-commit
+librequant/librequant_mvp.md
