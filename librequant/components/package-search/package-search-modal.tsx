@@ -3,13 +3,19 @@
 import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useWorkbenchStore } from "@/lib/stores/workbench-store";
+import type { ServiceManager } from "@jupyterlab/services";
+import type { RunNotebookPipInstall } from "@/components/package-search/notebook-pip-types";
 import { PackageSearchPanel } from "@/components/package-search/package-search-panel";
 
 type Props = {
-  notebookId: string;
+  serviceManager?: ServiceManager.IManager | null;
+  runNotebookPipInstall?: RunNotebookPipInstall;
 };
 
-export function PackageSearchModal({ notebookId }: Props) {
+export function PackageSearchModal({
+  serviceManager = null,
+  runNotebookPipInstall,
+}: Props) {
   const open = useWorkbenchStore((s) => s.packageSearchOpen);
   const setOpen = useWorkbenchStore((s) => s.setPackageSearchOpen);
   const generation = useWorkbenchStore((s) => s.packageSearchGeneration);
@@ -63,7 +69,8 @@ export function PackageSearchModal({ notebookId }: Props) {
         {open ? (
           <PackageSearchPanel
             key={generation}
-            notebookId={notebookId}
+            runNotebookPipInstall={runNotebookPipInstall}
+            serviceManager={serviceManager}
             autoFocus
           />
         ) : null}

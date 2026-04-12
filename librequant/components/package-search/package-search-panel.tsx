@@ -1,21 +1,33 @@
 "use client";
 
 import "@/lib/ensure-webpack-public-path";
-import { notebookStore } from "@datalayer/jupyter-react";
+import type { ServiceManager } from "@jupyterlab/services";
 import { Loader2, Package, Search } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import type { RunNotebookPipInstall } from "@/components/package-search/notebook-pip-types";
+import { pipInstallViaEphemeralKernel } from "@/lib/pip-install-via-kernel";
 import { isSafePyPIProjectName } from "@/lib/pypi-name";
 import type { PyPIProjectSummary } from "@/lib/types/pypi";
 
 type Props = {
-  notebookId: string;
+  /**
+   * When provided (from the notebook workbench), runs `%pip` on the active notebook kernel.
+   * If this returns `null`, the panel falls back to {@link serviceManager} when set.
+   */
+  runNotebookPipInstall?: RunNotebookPipInstall;
+  /**
+   * Used when there is no notebook adapter (e.g. strategy editor), or as fallback when
+   * `runNotebookPipInstall` returns `null`: run `%pip install` on a short-lived Jupyter kernel.
+   */
+  serviceManager?: ServiceManager.IManager | null;
   className?: string;
   /** Focus search input on mount (e.g. when modal opens) */
   autoFocus?: boolean;
 };
 
 export function PackageSearchPanel({
-  notebookId,
+  runNotebookPipInstall,
+  serviceManager = null,
   className = "",
   autoFocus = false,
 }: Props) {
@@ -102,42 +114,72 @@ export function PackageSearchPanel({
         setMessage({ kind: "err", text: "Invalid package name." });
         return;
       }
-      const adapter = notebookStore
-        .getState()
-        .selectNotebookAdapter(notebookId);
-      if (!adapter) {
-        setMessage({ kind: "err", text: "Notebook is not ready yet." });
+      if (!runNotebookPipInstall && !serviceManager) {
+        setMessage({
+          kind: "err",
+          text: "Jupyter is not connected.",
+        });
         return;
       }
+
       setInstalling(name);
       setMessage(null);
       setOpen(false);
       try {
         const code = `%pip install ${name}`;
-        const result = await adapter.executeCode(code, { timeout: 300 });
-        if (!result.success) {
+
+        if (runNotebookPipInstall) {
+          const notebookResult = await runNotebookPipInstall(code);
+          if (notebookResult !== null) {
+            const result = notebookResult;
+            if (!result.success) {
+              setMessage({
+                kind: "err",
+                text: result.error ?? "Install failed (see kernel output).",
+              });
+              return;
+            }
+            const errOut = result.outputs?.find((o) => o.type === "error");
+            if (errOut && errOut.type === "error") {
+              const c = errOut.content as {
+                evalue?: string;
+                traceback?: string[];
+              };
+              const text =
+                c.evalue?.trim() ||
+                c.traceback?.slice(-4).join("\n") ||
+                "pip reported an error.";
+              setMessage({ kind: "err", text });
+              return;
+            }
+            setMessage({
+              kind: "ok",
+              text: `Installed ${name} in the kernel environment.`,
+            });
+            return;
+          }
+        }
+
+        if (!serviceManager) {
           setMessage({
             kind: "err",
-            text: result.error ?? "Install failed (see kernel output).",
+            text: runNotebookPipInstall
+              ? "Notebook is not ready yet."
+              : "Jupyter is not connected.",
           });
           return;
         }
-        const errOut = result.outputs?.find((o) => o.type === "error");
-        if (errOut && errOut.type === "error") {
-          const c = errOut.content as {
-            evalue?: string;
-            traceback?: string[];
-          };
-          const text =
-            c.evalue?.trim() ||
-            c.traceback?.slice(-4).join("\n") ||
-            "pip reported an error.";
-          setMessage({ kind: "err", text });
+
+        const pipResult = await pipInstallViaEphemeralKernel(serviceManager, name, {
+          timeoutMs: 300_000,
+        });
+        if (!pipResult.ok) {
+          setMessage({ kind: "err", text: pipResult.message });
           return;
         }
         setMessage({
           kind: "ok",
-          text: `Installed ${name} in the kernel environment.`,
+          text: `Installed ${name} in the Jupyter Python environment (same as notebooks).`,
         });
       } catch (e) {
         setMessage({
@@ -148,7 +190,7 @@ export function PackageSearchPanel({
         setInstalling(null);
       }
     },
-    [notebookId],
+    [runNotebookPipInstall, serviceManager],
   );
 
   return (

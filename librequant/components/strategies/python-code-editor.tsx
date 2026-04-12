@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { useTheme } from "next-themes";
-import { EditorView } from "@codemirror/view";
-import { EditorState } from "@codemirror/state";
+import { Compartment, EditorState, Prec } from "@codemirror/state";
+import { EditorView, keymap } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { python } from "@codemirror/lang-python";
 import { oneDark } from "@codemirror/theme-one-dark";
@@ -69,31 +69,52 @@ const DARK_EXTRA = EditorView.theme({
 interface PythonCodeEditorProps {
   initialValue: string;
   onChange?: (value: string) => void;
+  /** Cmd-S / Ctrl-S — e.g. flush debounced save to the server */
+  onSave?: () => void;
   className?: string;
 }
 
 export function PythonCodeEditor({
   initialValue,
   onChange,
+  onSave,
   className = "",
 }: PythonCodeEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const themeCompartmentRef = useRef<Compartment | null>(null);
   const onChangeRef = useRef(onChange);
+  const onSaveRef = useRef(onSave);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
   onChangeRef.current = onChange;
+  onSaveRef.current = onSave;
+
+  const themeExtensions = useCallback((dark: boolean) => {
+    return dark ? [oneDark, DARK_EXTRA] : [LIGHT_THEME];
+  }, []);
 
   const createState = useCallback(
-    (doc: string, dark: boolean) => {
+    (doc: string, dark: boolean, themeComp: Compartment) => {
+      const saveMap = keymap.of([
+        {
+          key: "Mod-s",
+          preventDefault: true,
+          run: () => {
+            onSaveRef.current?.();
+            return true;
+          },
+        },
+      ]);
+
       return EditorState.create({
         doc,
         extensions: [
           basicSetup,
           python(),
-          dark ? oneDark : LIGHT_THEME,
-          dark ? DARK_EXTRA : [],
+          themeComp.of(themeExtensions(dark)),
+          Prec.highest(saveMap),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               onChangeRef.current?.(update.state.doc.toString());
@@ -103,35 +124,40 @@ export function PythonCodeEditor({
         ].flat(),
       });
     },
-    [],
+    [themeExtensions],
   );
 
   useEffect(() => {
     const el = editorRef.current;
     if (!el) return;
 
+    const themeComp = new Compartment();
+    themeCompartmentRef.current = themeComp;
+
     const view = new EditorView({
-      state: createState(initialValue, isDark),
+      state: createState(initialValue, isDark, themeComp),
       parent: el,
     });
 
     viewRef.current = view;
 
     return () => {
+      themeCompartmentRef.current = null;
       view.destroy();
       viewRef.current = null;
     };
-    // Only re-mount when container element changes; theme/content updates are handled below
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     const view = viewRef.current;
-    if (!view) return;
+    const comp = themeCompartmentRef.current;
+    if (!view || !comp) return;
 
-    const currentDoc = view.state.doc.toString();
-    view.setState(createState(currentDoc, isDark));
-  }, [isDark, createState]);
+    view.dispatch({
+      effects: comp.reconfigure(themeExtensions(isDark)),
+    });
+  }, [isDark, themeExtensions]);
 
   return (
     <div

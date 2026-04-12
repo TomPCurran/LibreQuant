@@ -3,12 +3,20 @@
 import { notebookStore } from "@datalayer/jupyter-react";
 import type { Contents } from "@jupyterlab/services";
 import type { INotebookContent } from "@jupyterlab/nbformat";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getNotebookJson,
   saveNotebookJson,
 } from "@/lib/jupyter-contents";
 import { getNotebookLibraryRoot } from "@/lib/env";
+
+export type NotebookServerSaveStatus =
+  | { phase: "idle"; lastSavedAt: number | null }
+  | { phase: "saving"; lastSavedAt: number | null }
+  | { phase: "saved"; lastSavedAt: number }
+  | { phase: "error"; lastSavedAt: number | null; message: string };
+
+const IDLE: NotebookServerSaveStatus = { phase: "idle", lastSavedAt: null };
 
 /**
  * Loads notebook JSON from Jupyter Contents for `notebookPath`, debounces saves back to the server.
@@ -28,12 +36,19 @@ export function useNotebookServerPersistence(
   nbformat: INotebookContent;
   serverContentReady: boolean;
   loadError: string | null;
+  /** Clears debounce and writes the current notebook model to the Jupyter server (Cmd/Ctrl-S). */
+  flushNotebookSave: () => void;
+  /** UI state for autosave feedback (saving / saved / last time). */
+  notebookSaveStatus: NotebookServerSaveStatus;
 } {
   const libraryRoot = getNotebookLibraryRoot();
+  const flushNotebookSaveRef = useRef<(() => void) | null>(null);
   const [nbformat, setNbformat] = useState<INotebookContent>(fallback);
   const [serverContentReady, setServerContentReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [syncedNotebookPath, setSyncedNotebookPath] = useState(notebookPath);
+  const [notebookSaveStatus, setNotebookSaveStatus] =
+    useState<NotebookServerSaveStatus>(IDLE);
 
   if (notebookPath !== syncedNotebookPath) {
     setSyncedNotebookPath(notebookPath);
@@ -41,6 +56,10 @@ export function useNotebookServerPersistence(
     setServerContentReady(false);
     setLoadError(null);
   }
+
+  useEffect(() => {
+    setNotebookSaveStatus(IDLE);
+  }, [notebookPath]);
 
   useEffect(() => {
     if (!contents || !notebookPath) {
@@ -72,6 +91,7 @@ export function useNotebookServerPersistence(
     let cancelled = false;
     let pollTimer: ReturnType<typeof setTimeout> | undefined;
     let detach: (() => void) | undefined;
+    let savedBannerTimer: ReturnType<typeof setTimeout> | undefined;
 
     const attach = () => {
       if (cancelled) return;
@@ -84,35 +104,65 @@ export function useNotebookServerPersistence(
         return;
       }
 
-      let debounceTimer: ReturnType<typeof setTimeout>;
-      const persist = () => {
+      let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+      const persist = async () => {
         if (cancelled || !notebookPath) return;
         const current = notebookStore
           .getState()
           .selectNotebookAdapter(notebookId)?.model;
         if (!current || current.isDisposed) return;
+
+        setNotebookSaveStatus((prev) => ({
+          phase: "saving",
+          lastSavedAt: prev.lastSavedAt,
+        }));
+
         try {
-          void saveNotebookJson(
+          await saveNotebookJson(
             contents,
             libraryRoot,
             notebookPath,
             current.toJSON() as INotebookContent,
-          ).catch((e) => {
-            console.warn("[librequant] Notebook save failed:", e);
-          });
+          );
+          if (cancelled) return;
+          const at = Date.now();
+          setNotebookSaveStatus({ phase: "saved", lastSavedAt: at });
+          if (savedBannerTimer !== undefined) clearTimeout(savedBannerTimer);
+          savedBannerTimer = window.setTimeout(() => {
+            setNotebookSaveStatus({ phase: "idle", lastSavedAt: at });
+          }, 2200);
         } catch (e) {
-          console.warn("[librequant] Notebook serialize failed:", e);
+          if (cancelled) return;
+          const message =
+            e instanceof Error ? e.message : "Notebook save failed.";
+          console.warn("[librequant] Notebook save failed:", e);
+          setNotebookSaveStatus({
+            phase: "error",
+            lastSavedAt: null,
+            message,
+          });
         }
       };
 
+      const flushSave = () => {
+        if (debounceTimer !== undefined) clearTimeout(debounceTimer);
+        void persist();
+      };
+      flushNotebookSaveRef.current = flushSave;
+
       const onContentChanged = () => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(persist, 450);
+        if (debounceTimer !== undefined) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          void persist();
+        }, 450);
       };
 
       model.contentChanged.connect(onContentChanged);
       detach = () => {
-        clearTimeout(debounceTimer);
+        flushNotebookSaveRef.current = null;
+        if (debounceTimer !== undefined) clearTimeout(debounceTimer);
+        if (savedBannerTimer !== undefined) clearTimeout(savedBannerTimer);
         model.contentChanged.disconnect(onContentChanged);
       };
     };
@@ -121,10 +171,21 @@ export function useNotebookServerPersistence(
 
     return () => {
       cancelled = true;
+      flushNotebookSaveRef.current = null;
       clearTimeout(pollTimer);
       detach?.();
     };
   }, [contents, libraryRoot, notebookId, notebookPath, notebookReady]);
 
-  return { nbformat, serverContentReady, loadError };
+  const flushNotebookSave = useCallback(() => {
+    flushNotebookSaveRef.current?.();
+  }, []);
+
+  return {
+    nbformat,
+    serverContentReady,
+    loadError,
+    flushNotebookSave,
+    notebookSaveStatus,
+  };
 }
