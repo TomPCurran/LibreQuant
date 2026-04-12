@@ -225,7 +225,9 @@
         border: 1px solid hsl(var(--foreground) / 0.1);
         background: hsl(var(--foreground) / 0.04);
         color: hsl(var(--text-secondary));
-        transition: opacity 150ms ease, background-color 150ms ease;
+        transition:
+          opacity 150ms ease,
+          background-color 150ms ease;
       }
 
       .doc-theme-toggle:hover {
@@ -274,7 +276,9 @@
       <div class="flex flex-wrap items-center gap-2 md:gap-3">
         <div class="hidden sm:flex items-center gap-4 text-xs font-medium">
           <a href="#pillars" class="doc-link-muted transition">Principles</a>
-          <a href="#quick-start" class="doc-link-muted transition">Quick start</a>
+          <a href="#quick-start" class="doc-link-muted transition"
+            >Quick start</a
+          >
           <a href="#faq" class="doc-link-muted transition">FAQ</a>
         </div>
         <button
@@ -312,7 +316,9 @@
             aria-hidden="true"
           >
             <circle cx="12" cy="12" r="4" />
-            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            <path
+              d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+            />
           </svg>
         </button>
         <a
@@ -336,7 +342,9 @@
             decoding="async"
           />
         </div>
-        <p class="text-xs font-medium tracking-[0.14em] text-text-secondary uppercase mb-4">
+        <p
+          class="text-xs font-medium tracking-[0.14em] text-text-secondary uppercase mb-4"
+        >
           Open source · Local-first · MIT
         </p>
         <h1
@@ -395,40 +403,117 @@
         <div class="grid md:grid-cols-3 gap-4 md:gap-5">
           <div class="glass p-6 rounded-4xl text-left">
             <div class="text-brand-gray mb-4" aria-hidden="true">
-              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 24h24M6 18h18M6 12h12" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
-                <circle cx="28" cy="12" r="3" stroke="currentColor" stroke-width="1.75" />
+              <svg
+                width="36"
+                height="36"
+                viewBox="0 0 36 36"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M6 24h24M6 18h18M6 12h12"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                />
+                <circle
+                  cx="28"
+                  cy="12"
+                  r="3"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                />
               </svg>
             </div>
-            <h3 class="heading-brand text-text-primary text-base mb-2">Jupyter-native execution</h3>
+            <h3 class="heading-brand text-text-primary text-base mb-2">
+              Jupyter-native execution
+            </h3>
             <p class="text-sm font-light text-text-secondary leading-relaxed">
-              Python runs in the notebook kernel (Docker by default). The app uses the standard Jupyter protocol for files, kernels, and cells—familiar tooling, local process.
+              Python runs in the notebook kernel (Docker by default). The app
+              uses the standard Jupyter protocol for files, kernels, and
+              cells—familiar tooling, local process.
             </p>
           </div>
           <div class="glass p-6 rounded-4xl text-left">
             <div class="text-brand-gray mb-4" aria-hidden="true">
-              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="8" y="10" width="20" height="18" rx="3" stroke="currentColor" stroke-width="1.75" />
-                <path d="M14 22l3 3 6-6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+              <svg
+                width="36"
+                height="36"
+                viewBox="0 0 36 36"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  x="8"
+                  y="10"
+                  width="20"
+                  height="18"
+                  rx="3"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                />
+                <path
+                  d="M14 22l3 3 6-6"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </div>
-            <h3 class="heading-brand text-text-primary text-base mb-2">Local custody</h3>
+            <h3 class="heading-brand text-text-primary text-base mb-2">
+              Local custody
+            </h3>
             <p class="text-sm font-light text-text-secondary leading-relaxed">
-              Notebooks and strategies live in your Jupyter workspace (e.g. Docker volume). You hold the token and filesystem layout—the app is not a hosted black box.
+              Notebooks and strategies live in your Jupyter workspace (e.g.
+              Docker volume). You hold the token and filesystem layout—the app
+              is not a hosted black box.
             </p>
           </div>
           <div class="glass p-6 rounded-4xl text-left">
             <div class="text-brand-gray mb-4" aria-hidden="true">
-              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="10" cy="18" r="3" stroke="currentColor" stroke-width="1.75" />
-                <circle cx="26" cy="18" r="3" stroke="currentColor" stroke-width="1.75" />
-                <path d="M13 18h10" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
-                <path d="M18 8v6M18 22v6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+              <svg
+                width="36"
+                height="36"
+                viewBox="0 0 36 36"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="10"
+                  cy="18"
+                  r="3"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                />
+                <circle
+                  cx="26"
+                  cy="18"
+                  r="3"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                />
+                <path
+                  d="M13 18h10"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M18 8v6M18 22v6"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                />
               </svg>
             </div>
-            <h3 class="heading-brand text-text-primary text-base mb-2">One workbench shell</h3>
+            <h3 class="heading-brand text-text-primary text-base mb-2">
+              One workbench shell
+            </h3>
             <p class="text-sm font-light text-text-secondary leading-relaxed">
-              Notebook library, strategy tree, and Python editor in one routed UI—so you move between research artifacts without juggling disconnected tools.
+              Notebook library, strategy tree, and Python editor in one routed
+              UI—so you move between research artifacts without juggling
+              disconnected tools.
             </p>
           </div>
         </div>
@@ -437,34 +522,99 @@
       <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-6 px-6 pb-20">
         <div class="glass p-8 rounded-4xl">
           <div class="mb-5 text-brand-gray" aria-hidden="true">
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 12h10v16H8V12z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" />
-              <path d="M22 20c0-5 4-9 9-9" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
-              <circle cx="31" cy="20" r="3" stroke="currentColor" stroke-width="1.75" />
-              <path d="M12 28l8-8 4 4 6-6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+            <svg
+              width="40"
+              height="40"
+              viewBox="0 0 40 40"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M8 12h10v16H8V12z"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M22 20c0-5 4-9 9-9"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+              />
+              <circle
+                cx="31"
+                cy="20"
+                r="3"
+                stroke="currentColor"
+                stroke-width="1.75"
+              />
+              <path
+                d="M12 28l8-8 4 4 6-6"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
             </svg>
           </div>
           <h3 class="heading-brand text-text-primary text-lg mb-2">
             Notebooks &amp; kernel
           </h3>
           <p class="text-sm font-light text-text-secondary leading-relaxed">
-            Open and save <span class="font-mono-code text-[12px]">.ipynb</span> files through the Jupyter Contents API, run cells, and manage the session from the workbench toolbar.
+            Open and save
+            <span class="font-mono-code text-[12px]">.ipynb</span> files through
+            the Jupyter Contents API, run cells, and manage the session from the
+            workbench toolbar.
           </p>
         </div>
         <div class="glass p-8 rounded-4xl">
           <div class="mb-5 text-brand-gray" aria-hidden="true">
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="8" y="10" width="24" height="20" rx="3" stroke="currentColor" stroke-width="1.75" />
-              <path d="M14 18h4M22 18h4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
-              <path d="M12 26h16" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
-              <circle cx="20" cy="30" r="2" stroke="currentColor" stroke-width="1.5" />
+            <svg
+              width="40"
+              height="40"
+              viewBox="0 0 40 40"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <rect
+                x="8"
+                y="10"
+                width="24"
+                height="20"
+                rx="3"
+                stroke="currentColor"
+                stroke-width="1.75"
+              />
+              <path
+                d="M14 18h4M22 18h4"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+              />
+              <path
+                d="M12 26h16"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+              />
+              <circle
+                cx="20"
+                cy="30"
+                r="2"
+                stroke="currentColor"
+                stroke-width="1.5"
+              />
             </svg>
           </div>
           <h3 class="heading-brand text-text-primary text-lg mb-2">
             Strategy library
           </h3>
           <p class="text-sm font-light text-text-secondary leading-relaxed">
-            Create and edit strategy packages on the server; new modules include a <span class="font-mono-code text-[12px]">PARAMS</span> dict and <span class="font-mono-code text-[12px]">signal</span> stub so notebooks can import from the shared <span class="font-mono-code text-[12px]">PYTHONPATH</span>.
+            Create and edit strategy packages on the server; new modules include
+            a <span class="font-mono-code text-[12px]">PARAMS</span> dict and
+            <span class="font-mono-code text-[12px]">signal</span> stub so
+            notebooks can import from the shared
+            <span class="font-mono-code text-[12px]">PYTHONPATH</span>.
           </p>
         </div>
       </div>
@@ -502,7 +652,10 @@
         </h2>
         <div class="glass rounded-4xl p-6 md:p-8">
           <p class="text-sm font-light text-text-secondary mb-4">
-            Fastest path: clone the repo and bring up Jupyter with Docker Compose, then run the Next.js app from <span class="font-mono-code text-[12px]">librequant/</span> (see the repo README for the one-command dev stack).
+            Fastest path: clone the repo and bring up Jupyter with Docker
+            Compose, then run the Next.js app from
+            <span class="font-mono-code text-[12px]">librequant/</span> (see the
+            repo README for the one-command dev stack).
           </p>
           <pre
             class="font-mono-code text-[12px] md:text-[13px] leading-relaxed text-text-primary bg-pre-inline rounded-2xl p-4 overflow-x-auto border border-solid doc-border-subtle"
@@ -516,7 +669,9 @@ docker compose up -d
 # App — from librequant/
 cd librequant &amp;&amp; npm install &amp;&amp; npm run dev:stack</code></pre>
           <p class="mt-4 text-xs text-text-secondary">
-            See <span class="font-mono-code text-[12px]">librequant/README.md</span> for environment variables, security notes, and configuration.
+            See
+            <span class="font-mono-code text-[12px]">librequant/README.md</span>
+            for environment variables, security notes, and configuration.
           </p>
         </div>
       </section>
@@ -538,7 +693,12 @@ cd librequant &amp;&amp; npm install &amp;&amp; npm run dev:stack</code></pre>
               How is this different from JupyterLab alone?
             </dt>
             <dd class="text-sm font-light text-text-secondary leading-relaxed">
-              JupyterLab already runs kernels and files. LibreQuant adds a focused Next.js UI: notebook library routes, a strategy file tree, loading states for Jupyter connectivity, and helpers that align <span class="font-mono-code text-[12px]">PYTHONPATH</span> with your compose layout—so you spend less time wiring paths and tabs by hand.
+              JupyterLab already runs kernels and files. LibreQuant adds a
+              focused Next.js UI: notebook library routes, a strategy file tree,
+              loading states for Jupyter connectivity, and helpers that align
+              <span class="font-mono-code text-[12px]">PYTHONPATH</span> with
+              your compose layout—so you spend less time wiring paths and tabs
+              by hand.
             </dd>
           </div>
           <div class="glass rounded-3xl px-5 py-4">
@@ -546,7 +706,10 @@ cd librequant &amp;&amp; npm install &amp;&amp; npm run dev:stack</code></pre>
               Where does code run?
             </dt>
             <dd class="text-sm font-light text-text-secondary leading-relaxed">
-              Notebook cells execute in the Jupyter kernel (typically inside the Docker container on your machine). The browser shell does not replace the kernel—it connects to it over the standard Jupyter HTTP and WebSocket APIs.
+              Notebook cells execute in the Jupyter kernel (typically inside the
+              Docker container on your machine). The browser shell does not
+              replace the kernel—it connects to it over the standard Jupyter
+              HTTP and WebSocket APIs.
             </dd>
           </div>
           <div class="glass rounded-3xl px-5 py-4">
@@ -554,7 +717,11 @@ cd librequant &amp;&amp; npm install &amp;&amp; npm run dev:stack</code></pre>
               What about risk and backtests?
             </dt>
             <dd class="text-sm font-light text-text-secondary leading-relaxed">
-              The workbench does not validate trading performance for you. Any P&amp;L or risk analysis is whatever you implement in notebooks and libraries—<span class="text-risk font-medium">never</span> treat an experiment as production-ready without your own checks and out-of-sample discipline.
+              The workbench does not validate trading performance for you. Any
+              P&amp;L or risk analysis is whatever you implement in notebooks
+              and libraries—<span class="text-risk font-medium">never</span>
+              treat an experiment as production-ready without your own checks
+              and out-of-sample discipline.
             </dd>
           </div>
         </dl>
@@ -562,10 +729,10 @@ cd librequant &amp;&amp; npm install &amp;&amp; npm run dev:stack</code></pre>
     </main>
 
     <footer class="border-t border-solid doc-border-subtle footer-shell">
-      <div class="max-w-3xl mx-auto px-6 py-10 text-center text-text-secondary text-sm font-light">
-        <p class="mb-3">
-          © 2026 LibreQuant · MIT License
-        </p>
+      <div
+        class="max-w-3xl mx-auto px-6 py-10 text-center text-text-secondary text-sm font-light"
+      >
+        <p class="mb-3">© 2026 LibreQuant · MIT License</p>
         <p class="flex flex-wrap justify-center gap-x-3 gap-y-1">
           <a
             href="https://github.com/tompcurran/LibreQuant"
