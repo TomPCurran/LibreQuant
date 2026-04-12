@@ -1,3 +1,10 @@
+/** Compact clock for “last saved” toasts (locale-aware). */
+export function formatSavedClock(ms: number): string {
+  return new Intl.DateTimeFormat(undefined, {
+    timeStyle: "short",
+  }).format(ms);
+}
+
 /**
  * Shared ISO-8601 display for library panels (notebook + strategy).
  */

@@ -38,11 +38,13 @@ import {
   useKernelConnectionTransportStatus,
   useLogKernelWebSocketReconnect,
 } from "@/lib/use-jupyter-kernel-connection-status";
+import { useNotebookHostShortcuts } from "@/lib/use-notebook-host-shortcuts";
 import { useNotebookServerPersistence } from "@/lib/use-notebook-server-persistence";
 import { useCodemirrorAutoCloseBrackets } from "@/lib/use-codemirror-auto-close-brackets";
 import { useJupyterServiceManager } from "@/lib/use-jupyter-service-manager";
 import { useStrategyPathInjection } from "@/lib/use-strategy-path-injection";
 import { useWorkbenchStore } from "@/lib/stores/workbench-store";
+import { NotebookSaveStatusBar } from "@/components/notebook/notebook-save-status-bar";
 import { PackageSearchModal } from "@/components/package-search/package-search-modal";
 import { JupyterConnectingPanel } from "./jupyter-connecting-panel";
 import { NotebookLoadingState } from "./notebook-loading-state";
@@ -147,12 +149,25 @@ function JupyterNotebookEditor({ notebookPath }: { notebookPath: string }) {
     notebookId ? s.selectNotebookAdapter(notebookId) : undefined,
   );
 
-  const { nbformat, serverContentReady, loadError } = useNotebookServerPersistence(
+  const {
+    nbformat,
+    serverContentReady,
+    loadError,
+    flushNotebookSave,
+    notebookSaveStatus,
+  } = useNotebookServerPersistence(
     jupyter.serviceManager?.contents,
     notebookId,
     notebookPath,
     notebookReady,
     initialNotebook,
+  );
+
+  useNotebookHostShortcuts(
+    hostRef,
+    notebookId,
+    flushNotebookSave,
+    serverContentReady && notebookReady,
   );
 
   const kernelConnectionStatus = useKernelConnectionTransportStatus(
@@ -209,6 +224,15 @@ function JupyterNotebookEditor({ notebookPath }: { notebookPath: string }) {
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps -- session identity
     [notebookPath],
+  );
+
+  const runNotebookPipInstall = useCallback(
+    async (code: string) => {
+      const adapter = notebookStore.getState().selectNotebookAdapter(notebookId);
+      if (!adapter) return null;
+      return adapter.executeCode(code, { timeout: 300 });
+    },
+    [notebookId],
   );
 
   useLayoutEffect(() => {
@@ -306,7 +330,11 @@ function JupyterNotebookEditor({ notebookPath }: { notebookPath: string }) {
       <JupyterReactTheme loadJupyterLabCss={false} backgroundColor="transparent">
         <NotebookWorkbenchProvider value={workbenchCtx}>
           <JupyterThemeLink />
-          <PackageSearchModal notebookId={notebookId} />
+          <NotebookSaveStatusBar status={notebookSaveStatus} />
+          <PackageSearchModal
+            runNotebookPipInstall={runNotebookPipInstall}
+            serviceManager={jupyter.serviceManager}
+          />
           <OutputSanitizer containerRef={hostRef}>
             <div ref={hostRef} className="libre-notebook-host w-full">
               <Notebook

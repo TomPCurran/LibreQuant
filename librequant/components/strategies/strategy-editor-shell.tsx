@@ -6,10 +6,14 @@ import {
   ArrowLeft,
   Check,
   ClipboardCopy,
+  Cloud,
   Loader2,
+  Package,
   Save,
+  AlertCircle,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { PackageSearchModal } from "@/components/package-search/package-search-modal";
 import { WorkbenchShell } from "@/components/workbench-shell";
 import { PythonCodeEditor } from "@/components/strategies/python-code-editor";
 import { StrategyFileTree } from "@/components/strategies/strategy-file-tree";
@@ -21,7 +25,9 @@ import {
   saveTextFileContent,
 } from "@/lib/strategy-contents";
 import type { StrategyFileItem } from "@/lib/types/strategy";
+import { formatSavedClock } from "@/lib/format-date-time";
 import { basenameFromPath, parentPath } from "@/lib/jupyter-paths";
+import { useWorkbenchStore } from "@/lib/stores/workbench-store";
 
 const SAVE_DEBOUNCE_MS = 800;
 
@@ -70,12 +76,16 @@ export function StrategyEditorShell() {
 
 function EditorWithFile({ filePath }: { filePath: string }) {
   const { serviceManager, error: mgrError } = useJupyterServiceManager();
+  const setPackageSearchOpen = useWorkbenchStore((s) => s.setPackageSearchOpen);
   const [content, setContent] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [files, setFiles] = useState<StrategyFileItem[]>([]);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">(
     "idle",
   );
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+  const [pendingAutosave, setPendingAutosave] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const dirPath = parentPath(filePath);
@@ -89,6 +99,9 @@ function EditorWithFile({ filePath }: { filePath: string }) {
     setContent(null);
     setLoadError(null);
     setSaveState("idle");
+    setLastSavedAt(null);
+    setPendingAutosave(false);
+    setSaveError(null);
   }, [filePath]);
 
   const loadFile = useCallback(async () => {
@@ -129,13 +142,21 @@ function EditorWithFile({ filePath }: { filePath: string }) {
   const doSave = useCallback(
     async (text: string) => {
       if (!serviceManager) return;
+      setPendingAutosave(false);
+      setSaveError(null);
       setSaveState("saving");
       try {
         await saveTextFileContent(serviceManager.contents, filePath, text);
+        const at = Date.now();
+        setLastSavedAt(at);
         setSaveState("saved");
-        setTimeout(() => setSaveState("idle"), 1500);
-      } catch {
+        setTimeout(() => setSaveState("idle"), 2800);
+      } catch (e) {
         setSaveState("idle");
+        setSaveError(
+          e instanceof Error ? e.message : "Could not save to Jupyter.",
+        );
+        window.setTimeout(() => setSaveError(null), 6000);
       }
     },
     [serviceManager, filePath],
@@ -144,6 +165,7 @@ function EditorWithFile({ filePath }: { filePath: string }) {
   const onChange = useCallback(
     (value: string) => {
       latestContentRef.current = value;
+      setPendingAutosave(true);
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
         void doSave(value);
@@ -182,12 +204,14 @@ function EditorWithFile({ filePath }: { filePath: string }) {
 
   const combinedError = mgrError ?? loadError;
 
+  const subtitle =
+    lastSavedAt != null
+      ? `Strategy editor — last saved ${formatSavedClock(lastSavedAt)} · auto-save on`
+      : "Strategy editor — changes auto-save to your Jupyter workspace.";
+
   return (
-    <WorkbenchShell
-      sectionEyebrow={dirName}
-      title={fileName}
-      subtitle="Strategy editor — changes auto-save to your Jupyter workspace."
-    >
+    <WorkbenchShell sectionEyebrow={dirName} title={fileName} subtitle={subtitle}>
+      <PackageSearchModal serviceManager={serviceManager} />
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Link
@@ -214,22 +238,75 @@ function EditorWithFile({ filePath }: { filePath: string }) {
             <ClipboardCopy className="size-4" aria-hidden />
             {copied ? "Copied!" : "Copy import"}
           </button>
+          <button
+            type="button"
+            onClick={() => setPackageSearchOpen(true)}
+            disabled={!serviceManager}
+            className="inline-flex items-center gap-1.5 rounded-full border border-foreground/12 bg-foreground/5 px-4 py-2 text-sm font-medium text-text-primary transition hover:bg-foreground/[0.07] disabled:opacity-50"
+          >
+            <Package className="size-4" aria-hidden />
+            Packages
+          </button>
 
-          <div className="ml-auto flex items-center gap-1.5 text-xs font-light text-text-secondary">
-            {saveState === "saving" ? (
-              <>
-                <Loader2
-                  className="size-3.5 animate-spin text-alpha"
-                  aria-hidden
-                />
-                Saving…
-              </>
-            ) : saveState === "saved" ? (
-              <>
-                <Check className="size-3.5 text-alpha" aria-hidden />
-                Saved
-              </>
-            ) : null}
+          <div
+            className="ml-auto flex max-w-[min(100%,420px)] flex-wrap items-center justify-end gap-2"
+            role="status"
+            aria-live="polite"
+          >
+            <div
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-light ${
+                saveError
+                  ? "border-risk/35 bg-risk/5 text-risk"
+                  : "border-foreground/10 bg-foreground/[0.04] text-text-secondary"
+              }`}
+            >
+              {saveState === "saving" ? (
+                <>
+                  <Loader2
+                    className="size-3.5 shrink-0 animate-spin text-alpha"
+                    aria-hidden
+                  />
+                  <span className="text-text-primary">Saving to Jupyter…</span>
+                </>
+              ) : saveState === "saved" ? (
+                <>
+                  <Check className="size-3.5 shrink-0 text-alpha" aria-hidden />
+                  <span className="text-text-primary">Saved to workspace</span>
+                </>
+              ) : saveError ? (
+                <>
+                  <AlertCircle className="size-3.5 shrink-0" aria-hidden />
+                  <span>{saveError}</span>
+                </>
+              ) : pendingAutosave ? (
+                <>
+                  <Loader2
+                    className="size-3.5 shrink-0 animate-pulse text-alpha/70"
+                    aria-hidden
+                  />
+                  <span>Auto-save pending…</span>
+                </>
+              ) : (
+                <>
+                  <Cloud
+                    className="size-3.5 shrink-0 text-text-secondary opacity-80"
+                    aria-hidden
+                  />
+                  <span>
+                    {lastSavedAt != null ? (
+                      <>
+                        All changes saved ·{" "}
+                        <time dateTime={new Date(lastSavedAt).toISOString()}>
+                          {formatSavedClock(lastSavedAt)}
+                        </time>
+                      </>
+                    ) : (
+                      <>Edits auto-save to your Jupyter server</>
+                    )}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -270,6 +347,7 @@ function EditorWithFile({ filePath }: { filePath: string }) {
                 key={filePath}
                 initialValue={content}
                 onChange={onChange}
+                onSave={onManualSave}
               />
             </div>
           </div>
