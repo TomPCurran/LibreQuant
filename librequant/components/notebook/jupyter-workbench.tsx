@@ -34,7 +34,10 @@ import {
   loadStoredNotebookContent,
 } from "@/lib/notebook-local-storage";
 import { notebookReactIdFromPath } from "@/lib/notebook-id";
-import { useKernelConnectionTransportStatus } from "@/lib/use-jupyter-kernel-connection-status";
+import {
+  useKernelConnectionTransportStatus,
+  useLogKernelWebSocketReconnect,
+} from "@/lib/use-jupyter-kernel-connection-status";
 import { useNotebookServerPersistence } from "@/lib/use-notebook-server-persistence";
 import { useCodemirrorAutoCloseBrackets } from "@/lib/use-codemirror-auto-close-brackets";
 import { useJupyterServiceManager } from "@/lib/use-jupyter-service-manager";
@@ -155,6 +158,7 @@ function JupyterNotebookEditor({ notebookPath }: { notebookPath: string }) {
   const kernelConnectionStatus = useKernelConnectionTransportStatus(
     notebookAdapter?.kernel ?? undefined,
   );
+  useLogKernelWebSocketReconnect(notebookAdapter?.kernel ?? undefined);
 
   /**
    * Guard `notebookStore.reset()` so it only fires on *real* unmounts,

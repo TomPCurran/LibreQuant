@@ -37,19 +37,10 @@ import type { NotebookFolderItem, NotebookListItem } from "@/lib/types/notebook"
 import { initialNotebook } from "@/lib/initial-notebook";
 import { isNotebookContent } from "@/lib/notebook-local-storage";
 import { notebookStemFromPath } from "@/lib/jupyter-paths";
+import { formatDateTime } from "@/lib/format-date-time";
 import { useJupyterServiceManager } from "@/lib/use-jupyter-service-manager";
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
-
-function formatDateTime(iso: string): string {
-  if (!iso) return "—";
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return "—";
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(t);
-}
 
 const DRAG_MIME = "application/x-librequant-notebook-path";
 

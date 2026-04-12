@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useJupyterServiceManager } from "@/lib/use-jupyter-service-manager";
+import { formatDateTime } from "@/lib/format-date-time";
 import {
   buildImportSnippet,
   createStrategyDirectory,
@@ -24,16 +25,6 @@ import {
   listStrategyDirectories,
 } from "@/lib/strategy-contents";
 import type { StrategyDirectoryItem } from "@/lib/types/strategy";
-
-function formatDateTime(iso: string): string {
-  if (!iso) return "—";
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return "—";
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(t);
-}
 
 export function StrategyLibraryPanel() {
   const router = useRouter();

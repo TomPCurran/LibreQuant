@@ -16,25 +16,9 @@ import { getNotebookLibraryRoot } from "@/lib/env";
 import { listNotebookFolders } from "@/lib/jupyter-contents";
 import type { NotebookFolderItem } from "@/lib/types/notebook";
 import { notebookStemFromPath } from "@/lib/jupyter-paths";
+import { usePersistedExpandedSet } from "@/lib/use-persisted-expanded-set";
 
 const STORAGE_KEY = "librequant-sidebar-notebooks-expanded";
-
-function readExpanded(): Set<string> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return new Set();
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return new Set();
-    return new Set(parsed.filter((v): v is string => typeof v === "string"));
-  } catch { /* ignore */ }
-  return new Set();
-}
-
-function writeExpanded(set: Set<string>) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...set]));
-  } catch { /* ignore */ }
-}
 
 export function SidebarNotebookTree() {
   const pathname = usePathname();
@@ -44,7 +28,9 @@ export function SidebarNotebookTree() {
   const [folders, setFolders] = useState<NotebookFolderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [sectionOpen, setSectionOpen] = useState(true);
-  const [expanded, setExpanded] = useState<Set<string>>(readExpanded);
+  const { expanded, togglePath: toggleFolder } = usePersistedExpandedSet(
+    STORAGE_KEY,
+  );
 
   const activeNotebookPath =
     pathname === "/"
@@ -79,16 +65,6 @@ export function SidebarNotebookTree() {
   }, [refresh]);
 
   const toggleSection = () => setSectionOpen((v) => !v);
-
-  const toggleFolder = (path: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(path)) next.delete(path);
-      else next.add(path);
-      writeExpanded(next);
-      return next;
-    });
-  };
 
   const isNotebooksActive =
     pathname === "/notebooks" || activeNotebookPath !== null;

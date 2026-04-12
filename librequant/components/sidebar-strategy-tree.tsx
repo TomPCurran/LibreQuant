@@ -15,6 +15,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useJupyterServiceManager } from "@/lib/use-jupyter-service-manager";
 import { listStrategyDirectories } from "@/lib/strategy-contents";
 import type { StrategyDirectoryItem, StrategyFileItem } from "@/lib/types/strategy";
+import { usePersistedExpandedSet } from "@/lib/use-persisted-expanded-set";
 
 function hasPyFiles(items: StrategyFileItem[]): boolean {
   return items.some(
@@ -25,23 +26,6 @@ function hasPyFiles(items: StrategyFileItem[]): boolean {
 }
 
 const STORAGE_KEY = "librequant-sidebar-strategies-expanded";
-
-function readExpanded(): Set<string> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return new Set();
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return new Set();
-    return new Set(parsed.filter((v): v is string => typeof v === "string"));
-  } catch { /* ignore */ }
-  return new Set();
-}
-
-function writeExpanded(set: Set<string>) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...set]));
-  } catch { /* ignore */ }
-}
 
 function SidebarFileItems({
   items,
@@ -121,7 +105,9 @@ export function SidebarStrategyTree() {
   const [items, setItems] = useState<StrategyDirectoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [sectionOpen, setSectionOpen] = useState(true);
-  const [expanded, setExpanded] = useState<Set<string>>(readExpanded);
+  const { expanded, togglePath: toggleDir } = usePersistedExpandedSet(
+    STORAGE_KEY,
+  );
 
   const activePath = pathname.startsWith("/strategies/edit")
     ? (() => {
@@ -152,16 +138,6 @@ export function SidebarStrategyTree() {
   }, [refresh]);
 
   const toggleSection = () => setSectionOpen((v) => !v);
-
-  const toggleDir = (path: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(path)) next.delete(path);
-      else next.add(path);
-      writeExpanded(next);
-      return next;
-    });
-  };
 
   const isStrategiesActive =
     pathname === "/strategies" || pathname.startsWith("/strategies/");
