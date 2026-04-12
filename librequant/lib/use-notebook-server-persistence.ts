@@ -55,11 +55,8 @@ export function useNotebookServerPersistence(
     setNbformat(fallback);
     setServerContentReady(false);
     setLoadError(null);
-  }
-
-  useEffect(() => {
     setNotebookSaveStatus(IDLE);
-  }, [notebookPath]);
+  }
 
   useEffect(() => {
     if (!contents || !notebookPath) {
@@ -91,7 +88,8 @@ export function useNotebookServerPersistence(
     let cancelled = false;
     let pollTimer: ReturnType<typeof setTimeout> | undefined;
     let detach: (() => void) | undefined;
-    let savedBannerTimer: ReturnType<typeof setTimeout> | undefined;
+    /** Browser timer id (`number`); avoid `NodeJS.Timeout` from ambient `setTimeout` typing. */
+    let savedBannerTimer: number | undefined;
 
     const attach = () => {
       if (cancelled) return;
@@ -137,11 +135,11 @@ export function useNotebookServerPersistence(
           const message =
             e instanceof Error ? e.message : "Notebook save failed.";
           console.warn("[librequant] Notebook save failed:", e);
-          setNotebookSaveStatus({
+          setNotebookSaveStatus((prev) => ({
             phase: "error",
-            lastSavedAt: null,
+            lastSavedAt: prev.lastSavedAt,
             message,
-          });
+          }));
         }
       };
 
