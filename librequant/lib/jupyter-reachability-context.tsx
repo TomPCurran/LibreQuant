@@ -90,6 +90,13 @@ export function JupyterReachabilityStack({ children }: { children: ReactNode }) 
       if (prev !== null && prev !== ok) {
         setRemountKey((k) => k + 1);
       }
+      if (ok && prev !== true) {
+        const mode =
+          process.env.NODE_ENV === "production" ? "production" : "development";
+        console.info(
+          `[librequant] Jupyter HTTP API reachable [${mode}] ${baseUrl}`,
+        );
+      }
       prevOkRef.current = ok;
       setServerReachable(ok);
     };

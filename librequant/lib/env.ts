@@ -13,6 +13,9 @@
  * Maps a Jupyter HTTP origin for local dev so CSP and runtime agree: replaces `localhost` with
  * `127.0.0.1` (Docker often binds IPv4 only; macOS may resolve `localhost` to `::1` first).
  *
+ * CLI stack scripts use the same rules for valid URLs via `normalizeJupyterBaseUrlForProbe` in
+ * `scripts/stack-common.mjs` (invalid URLs there fall back to a default origin for polling).
+ *
  * @internal Used by `next.config.ts` CSP `connect-src` and should stay aligned with {@link getPublicJupyterConfig}.
  */
 export function normalizeLocalJupyterBaseUrl(raw: string): string {

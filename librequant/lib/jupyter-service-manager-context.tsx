@@ -66,6 +66,26 @@ export function JupyterServiceManagerProvider({
     };
   }, [serviceManager]);
 
+  useEffect(() => {
+    if (!serviceManager) return;
+    let cancelled = false;
+    const mode =
+      process.env.NODE_ENV === "production" ? "production" : "development";
+    void serviceManager.ready
+      .then(() => {
+        if (cancelled) return;
+        console.info(
+          `[librequant] Jupyter server connected [${mode}] ${baseUrl}`,
+        );
+      })
+      .catch(() => {
+        /* Unreachable or auth failure — banner / reachability probe surface UX */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [serviceManager, baseUrl]);
+
   const error = !token ? "Jupyter token is not configured." : null;
 
   const value = useMemo<ServiceManagerContextValue>(

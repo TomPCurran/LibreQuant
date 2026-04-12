@@ -2,7 +2,14 @@
 
 import "@/lib/ensure-webpack-public-path";
 import { notebookStore, useNotebookStore } from "@datalayer/jupyter-react";
-import { CirclePlus, Package, Pencil, Play, RotateCcw, Square } from "lucide-react";
+import {
+  CirclePlus,
+  Package,
+  Pencil,
+  Play,
+  RotateCcw,
+  Square,
+} from "lucide-react";
 import { useCallback, useState, useRef } from "react";
 import { getNotebookLibraryRoot } from "@/lib/env";
 import { renameNotebookPath } from "@/lib/jupyter-contents";
@@ -32,9 +39,7 @@ function pythonKernelExecutionLabel(
     case "dead":
       return "Python kernel stopped";
     default:
-      return kernelStatus
-        ? `Python kernel: ${kernelStatus}`
-        : "Python kernel";
+      return kernelStatus ? `Python kernel: ${kernelStatus}` : "Python kernel";
   }
 }
 
@@ -120,9 +125,7 @@ export function LibreNotebookToolbar(props: { notebookId: string }) {
   }, [isBusy, notebookId]);
 
   const onResetSession = useCallback(async () => {
-    const adapter = notebookStore
-      .getState()
-      .selectNotebookAdapter(notebookId);
+    const adapter = notebookStore.getState().selectNotebookAdapter(notebookId);
     setResetting(true);
     try {
       await notebookClearOutputsAndRestartKernel(adapter, notebookId);
@@ -136,9 +139,13 @@ export function LibreNotebookToolbar(props: { notebookId: string }) {
   return (
     <div className="flex flex-col gap-3 border-b border-black/6 bg-transparent px-0 py-2 dark:border-white/10">
       {workbench ? (
-        <JupyterTransportBanner status={workbench.kernelConnectionStatus} />
+        // During Reset session, WS briefly leaves `connected`; hide the amber banner so we
+        // do not double-notify or shift layout (toolbar already shows restart progress).
+        <JupyterTransportBanner
+          status={resetting ? "connected" : workbench.kernelConnectionStatus}
+        />
       ) : null}
-      {strategyHint ? (
+      {strategyHint && !resetting ? (
         <p
           role="status"
           className={`rounded-lg border px-3 py-2 text-xs font-light leading-snug ${
@@ -272,9 +279,10 @@ export function LibreNotebookToolbar(props: { notebookId: string }) {
         </p>
       </div>
       <p className="text-xs font-light leading-relaxed text-text-secondary">
-        Jupyter connection = browser to your Jupyter server. Python kernel = process that runs
-        cells. Reset session clears outputs and restarts the kernel only (not Docker).
-        Run executes every cell in order. Each cell has its own play and delete controls;{" "}
+        Jupyter connection = browser to your Jupyter server. Python kernel =
+        process that runs cells. Reset session clears outputs and restarts the
+        kernel only (not Docker). Run executes every cell in order. Each cell
+        has its own play and delete controls;{" "}
         <kbd className="rounded-md border border-foreground/15 bg-foreground/5 px-1.5 py-0.5 font-mono-code text-[10px] text-foreground/90">
           Shift
         </kbd>{" "}
@@ -282,7 +290,8 @@ export function LibreNotebookToolbar(props: { notebookId: string }) {
         <kbd className="rounded-md border border-foreground/15 bg-foreground/5 px-1.5 py-0.5 font-mono-code text-[10px] text-foreground/90">
           Enter
         </kbd>{" "}
-        still runs the focused cell. Use Add cell or the + row at the bottom of the notebook.
+        still runs the focused cell. Use Add cell or the + row at the bottom of
+        the notebook.
       </p>
     </div>
   );
