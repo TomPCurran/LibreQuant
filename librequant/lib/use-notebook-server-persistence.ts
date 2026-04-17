@@ -4,10 +4,7 @@ import { notebookStore } from "@datalayer/jupyter-react";
 import type { Contents } from "@jupyterlab/services";
 import type { INotebookContent } from "@jupyterlab/nbformat";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  getNotebookJson,
-  saveNotebookJson,
-} from "@/lib/jupyter-contents";
+import { getNotebookJson, saveNotebookJson } from "@/lib/jupyter-contents";
 import { getNotebookLibraryRoot } from "@/lib/env";
 
 export type NotebookServerSaveStatus =
