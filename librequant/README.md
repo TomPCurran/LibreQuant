@@ -23,6 +23,7 @@ Loading screens spell out which phase is active (connecting to the server vs sta
 | [`app/notebooks/page.tsx`](app/notebooks/page.tsx) | Notebook library: list and open `.ipynb` files under the Jupyter contents root. |
 | [`app/strategies/page.tsx`](app/strategies/page.tsx) | Strategy library browser. |
 | [`app/strategies/edit/page.tsx`](app/strategies/edit/page.tsx) | Strategy editor (files under the strategies tree via Contents API). |
+| [`app/data-sources/page.tsx`](app/data-sources/page.tsx) | Data sources: API keys (`.env.local`), uploads, and links to OHLCV cache docs. |
 
 Layouts and global UI: [`app/layout.tsx`](app/layout.tsx) (fonts, theme, skip link); client providers in [`components/providers.tsx`](components/providers.tsx) (`JupyterReachabilityStack`).
 
@@ -43,8 +44,23 @@ Copy [`.env.example`](.env.example) to `.env.local` and adjust (or rely on `pred
 | `NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH` | Default assumes Docker’s `PYTHONPATH` (Compose stack). Set to `0` only to force browser `sys.path` injection (e.g. Jupyter without matching `PYTHONPATH`). If you change `NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT` or `NEXT_PUBLIC_JUPYTER_USER_HOME`, update the `PYTHONPATH` line in the repository root `docker-compose.yml` so it matches `getJupyterUserHomeAbsolute()` + `getStrategyLibraryRoot()` in `lib/env.ts`. |
 | `NEXT_PUBLIC_JUPYTER_USER_HOME`     | Absolute Linux home inside the container for kernel snippets that join paths (default `/home/jovyan`).                                                                                                                                                                                                          |
 | `NEXT_PUBLIC_JUPYTER_VERBOSE`       | Set to `1` to disable dev log filtering in `lib/jupyter-dev-noise.ts`.                                                                                                                                                                                                                                          |
+| `ALPACA_API_KEY` / `ALPACA_SECRET_KEY` | Server-only and Jupyter: Alpaca Market Data (see [`packages/librequant`](../packages/librequant)). Set in `.env.local`; never commit. |
+| `POLYGON_API_KEY` / `TIINGO_API_KEY` | Reserved for future connectors; same rules as above. |
 
 Runtime resolution and validation live in [`lib/env.ts`](lib/env.ts) (JSDoc on each export).
+
+## Data sources and `librequant.data`
+
+The Python package at [`packages/librequant`](../packages/librequant) is bind-mounted into the Jupyter container (`/opt/librequant`) and installed on container start (`pip install /opt/librequant`). In notebooks you can use:
+
+```python
+from librequant.data import get_bars
+df = get_bars("AAPL", "2020-01-01", "2024-01-01", source="yfinance")
+```
+
+**OHLCV cache:** Parquet files under `data/cache/ohlcv/` inside the Jupyter workspace volume (default `…/work/librequant/data/cache/ohlcv/`). Repeated requests for the same range are served from cache without re-downloading.
+
+**Credentials:** Add API keys to **`librequant/.env.local`** (gitignored) or use the Data sources page (built-in providers plus **custom** uppercase env names, e.g. `MY_DATA_API_KEY`). Saving from the app also **syncs** a `config/credentials.env` file into the Jupyter workspace; `librequant.data` runs `python-dotenv` on each `get_bars()` (and exposes `load_data_source_secrets()`), so you usually **do not need to restart Docker** after changing keys. The repository root [`docker-compose.yml`](../docker-compose.yml) can still pass optional `env_file` from `.env.local` into Jupyter for the initial process environment; the synced file overrides on each data call (`override=True`).
 
 ## Jupyter Server (Docker)
 
@@ -58,6 +74,7 @@ docker compose up
 
 This starts `quay.io/jupyter/scipy-notebook` with:
 
+- **`librequant` Python package** installed from `./packages/librequant` (mounted at `/opt/librequant`) so `import librequant.data` works in notebooks. Each container start runs `pip install` for that path (adds a short delay and uses the network for dependency resolution unless wheels are cached). To speed up cold starts or avoid repeated downloads, use a custom image with the package pre-installed or keep dependencies stable in [`pyproject.toml`](../packages/librequant/pyproject.toml).
 - **`PYTHONPATH`** including `/home/jovyan/work/librequant/strategies` so notebook kernels see strategy packages without per-load `executeCode` (keep in sync with `NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT` / `NEXT_PUBLIC_JUPYTER_USER_HOME` if you change them). The container entry ensures that directory exists before Jupyter starts.
 - Port **8888** bound to **127.0.0.1** on the host (not advertised on the LAN from Docker’s port mapping).
 - Token **`devtoken`** (`NEXT_PUBLIC_JUPYTER_TOKEN` must match). **Treat the token like a password** — it is bundled into the client and grants full access to the Jupyter server and its mounted files.
@@ -68,9 +85,13 @@ If the app shows “Connecting to Jupyter…” forever, confirm `NEXT_PUBLIC_JU
 
 ### Notebook files and persistence
 
-- Compose mounts a named Docker volume on **`/home/jovyan/work`**, so anything under Jupyter’s `work/` tree (including the default library folder) survives container restarts.
-- Set **`NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT`** (see `.env.example`) to the directory **relative to the Jupyter server root** where the app lists and saves notebooks (default: `work/librequant`). The app creates that folder on first use if it does not exist.
-- To back up notebooks, copy the volume data (`docker run --rm -v jupyter-librequant-work:/data …`) or bind-mount a host directory instead of the named volume in `docker-compose.yml`.
+- **Host folder (default):** [`docker-compose.yml`](../docker-compose.yml) bind-mounts a directory on your machine onto **`/home/jovyan/work/librequant`** inside the container. That is the whole LibreQuant workspace: notebooks, `data/uploads/`, `config/credentials.env`, and `strategies/`. By default the repo uses **`./jupyter-workspace`** next to `docker-compose.yml` (gitignored).
+- **Choose your own path (e.g. Desktop):** Create a **repo-root** `.env` file (not `librequant/.env.local`) and set:
+  - `LIBREQUANT_JUPYTER_WORKSPACE_HOST=/Users/you/Desktop/notebooks`  
+  Use an absolute path on macOS so Finder shows your files exactly there. Restart Jupyter (`docker compose up -d` or `npm run dev:stack`) after changing it.
+- See [`env.docker.example`](../env.docker.example) for the variable name and examples. Docker Compose reads `.env` from the **repository root** for this substitution only.
+- **`NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT`** (see [`.env.example`](.env.example)) stays **`work/librequant`** unless you change the app’s path model; it must match the path Jupyter uses inside the container. With the bind mount above, that maps to files at `{LIBREQUANT_JUPYTER_WORKSPACE_HOST}/*.ipynb` on the host (not nested under an extra `librequant` folder on disk—the mount target *is* the `librequant` workspace).
+- **Migrating from the old named volume:** If you previously used Docker volume `jupyter-librequant-work`, copy data out before switching (e.g. run a one-off container with that volume mounted and `cp` to your new host folder), then apply the new `.env` and `docker compose up -d`.
 
 ## One command: Jupyter + Next dev
 
@@ -158,7 +179,7 @@ Full detail: **[SECURITY.md](SECURITY.md)** (trusted machine / trusted browser, 
 
 | Path | Role |
 | ---- | ---- |
-| [`app/`](app/) | App Router pages, `layout.tsx`, `loading.tsx`, `error.tsx`, API route [`app/api/pypi/search/`](app/api/pypi/search/) for PyPI search. |
+| [`app/`](app/) | App Router pages, `layout.tsx`, `loading.tsx`, `error.tsx`; API routes: [`api/pypi/search`](app/api/pypi/search/), [`api/data-sources/credentials`](app/api/data-sources/credentials/), [`api/data-sources/status`](app/api/data-sources/status/). |
 | [`components/`](components/) | Feature UI: [`workbench-shell`](components/workbench-shell.tsx), notebook ([`jupyter-workbench`](components/notebook/jupyter-workbench.tsx), toolbar, cells), strategies editor, sidebars, package search. |
 | [`lib/`](lib/) | Shared logic: Jupyter integration, env, paths, hooks, stores, lifecycle events. |
 | [`public/jupyter/`](public/jupyter/) | Copied JupyterLab theme CSS (`predev` / `prebuild`); required for editor theming with Turbopack. |

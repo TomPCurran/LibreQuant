@@ -146,6 +146,9 @@ ENV/
 .ipynb_checkpoints/
 **/.ipynb_checkpoints/
 
+# Default Docker bind-mount for Jupyter workspace (see docker-compose.yml / env.docker.example)
+jupyter-workspace/
+
 ## =========
 ## Project-specific generated assets
 ## =========

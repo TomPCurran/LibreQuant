@@ -2,11 +2,22 @@ services:
   jupyter:
     image: quay.io/jupyter/scipy-notebook:latest
     # Must match getJupyterUserHomeAbsolute() + getStrategyLibraryRoot() in lib/env.ts (default: /home/jovyan/work/librequant/strategies).
+    env_file:
+      - path: ./librequant/.env.local
+        required: false
     environment:
       PYTHONPATH: /home/jovyan/work/librequant/strategies
+      JUPYTER_USER_HOME: /home/jovyan
+      LIBREQUANT_NOTEBOOK_ROOT: work/librequant
     volumes:
-      # Persist notebooks under Jupyter’s default `work/` tree (see README / NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT)
-      - jupyter-librequant-work:/home/jovyan/work
+      # Host folder → LibreQuant workspace inside the container (notebooks, data/uploads, config/).
+      # Override with LIBREQUANT_JUPYTER_WORKSPACE_HOST in a repo-root .env file (see env.docker.example).
+      # Example: /Users/you/Desktop/notebooks so .ipynb files appear there in Finder.
+      # Default ./jupyter-workspace is created next to this file and is gitignored.
+      - ${LIBREQUANT_JUPYTER_WORKSPACE_HOST:-./jupyter-workspace}:/home/jovyan/work/librequant
+      # Editable Python package: pip install on each container start (adds startup time + network for deps).
+      # For faster cold starts or air-gapped use, use a custom image that pre-installs packages/librequant.
+      - ./packages/librequant:/opt/librequant:ro
       # For local strategy development on the host (uncomment; path is relative to this file):
       # - librequant/strategies:/home/jovyan/work/librequant/strategies
     # Host loopback only: Jupyter not exposed on the LAN from this machine (see SECURITY.md).
@@ -17,11 +28,11 @@ services:
       - -c
       - |
         mkdir -p /home/jovyan/work/librequant/strategies
+        # Versions pinned in packages/librequant/pyproject.toml; pip still resolves on each start unless cached.
+        pip install -q pip setuptools wheel
+        pip install -q /opt/librequant
         exec start-notebook.sh \
           --IdentityProvider.token=devtoken \
           --ServerApp.disable_check_xsrf=True \
           '--ServerApp.allow_origin_pat=^http://(localhost|127\.0\.0\.1):3000$' \
           --ServerApp.allow_credentials=True
-
-volumes:
-  jupyter-librequant-work:

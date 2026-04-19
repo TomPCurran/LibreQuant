@@ -4,23 +4,29 @@ import "@/lib/ensure-webpack-public-path";
 import { notebookStore, useNotebookStore } from "@datalayer/jupyter-react";
 import {
   CirclePlus,
+  Download,
   Package,
   Pencil,
   Play,
   RotateCcw,
   Square,
 } from "lucide-react";
-import { useCallback, useState, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
+import { JupyterTransportBanner } from "@/components/notebook/jupyter-transport-banner";
+import { useNotebookWorkbench } from "@/components/notebook/notebook-workbench-context";
+import { clientError } from "@/lib/client-log";
 import { getNotebookLibraryRoot } from "@/lib/env";
 import { renameNotebookPath } from "@/lib/jupyter-contents";
 import { notebookStemFromPath } from "@/lib/jupyter-paths";
+import { getNotebookContentFromStore } from "@/lib/notebook-store-content";
 import { notebookClearOutputsAndRestartKernel } from "@/lib/notebook-session-reset";
+import { supportsNativeSaveFilePicker } from "@/lib/save-notebook-host-capabilities";
+import { saveNotebookToHostFile } from "@/lib/save-notebook-to-host";
 import {
   useWorkbenchStore,
   type StrategyPathStatus,
 } from "@/lib/stores/workbench-store";
-import { JupyterTransportBanner } from "@/components/notebook/jupyter-transport-banner";
-import { useNotebookWorkbench } from "@/components/notebook/notebook-workbench-context";
+import { useHasMounted } from "@/lib/use-has-mounted";
 
 function pythonKernelExecutionLabel(
   kernelStatus: string | undefined,
@@ -76,6 +82,11 @@ export function LibreNotebookToolbar(props: { notebookId: string }) {
   const [renameDraft, setRenameDraft] = useState("");
   const [renameError, setRenameError] = useState<string | null>(null);
   const [renameBusy, setRenameBusy] = useState(false);
+  const [saveAsBusy, setSaveAsBusy] = useState(false);
+  const [saveAsError, setSaveAsError] = useState<string | null>(null);
+  const hasMounted = useHasMounted();
+  const saveFilePickerUi =
+    hasMounted && !supportsNativeSaveFilePicker();
 
   const beginRename = useCallback(() => {
     if (!workbench) return;
@@ -130,11 +141,30 @@ export function LibreNotebookToolbar(props: { notebookId: string }) {
     try {
       await notebookClearOutputsAndRestartKernel(adapter, notebookId);
     } catch (e) {
-      console.error("[librequant] Reset session failed:", e);
+      clientError("Reset session failed:", e);
     } finally {
       setResetting(false);
     }
   }, [notebookId]);
+
+  const onSaveAsHost = useCallback(async () => {
+    if (!workbench) return;
+    setSaveAsError(null);
+    setSaveAsBusy(true);
+    try {
+      const json = getNotebookContentFromStore(notebookId);
+      if (!json) {
+        setSaveAsError("Notebook is not ready yet. Try again in a moment.");
+        return;
+      }
+      const stem = notebookStemFromPath(workbench.notebookServerPath);
+      await saveNotebookToHostFile(json, `${stem}.ipynb`);
+    } catch (e) {
+      setSaveAsError(e instanceof Error ? e.message : "Save failed.");
+    } finally {
+      setSaveAsBusy(false);
+    }
+  }, [notebookId, workbench]);
 
   return (
     <div className="flex flex-col gap-3 border-b border-black/6 bg-transparent px-0 py-2 dark:border-white/10">
@@ -226,6 +256,21 @@ export function LibreNotebookToolbar(props: { notebookId: string }) {
           </button>
           <button
             type="button"
+            aria-label="Save a copy of this notebook to your computer"
+            title="Save a copy as .ipynb on this machine (outside the Jupyter server folder). Chromium-based browsers can open a Save dialog to pick a folder; Safari and Firefox save via a normal download instead (web platform limitation), which is expected."
+            onClick={() => void onSaveAsHost()}
+            disabled={!workbench || saveAsBusy}
+            aria-busy={saveAsBusy}
+            className="inline-flex h-11 items-center gap-1.5 rounded-full border border-foreground/15 bg-foreground/5 px-3 text-xs font-medium text-foreground transition hover:border-alpha/35 hover:text-alpha disabled:opacity-50"
+          >
+            <Download
+              className={`size-4 shrink-0 ${saveAsBusy ? "animate-pulse" : ""}`}
+              aria-hidden
+            />
+            <span className="hidden sm:inline">Save as…</span>
+          </button>
+          <button
+            type="button"
             aria-label="Run all cells"
             title="Run all cells from top to bottom"
             onClick={() => notebookStore.getState().runAll(notebookId)}
@@ -278,11 +323,26 @@ export function LibreNotebookToolbar(props: { notebookId: string }) {
           {pythonKernelExecutionLabel(kernelStatus, resetting)}
         </p>
       </div>
+      {saveAsError ? (
+        <p className="text-xs font-light text-risk" role="alert">
+          {saveAsError}
+        </p>
+      ) : null}
+      {saveFilePickerUi ? (
+        <p className="text-xs font-light leading-snug text-text-secondary">
+          Save as… downloads an{" "}
+          <code className="font-mono-code text-[11px]">.ipynb</code> copy to
+          your browser&apos;s download location (this browser does not offer a
+          pick-a-folder dialog). That is normal—not a failed save.
+        </p>
+      ) : null}
       <p className="text-xs font-light leading-relaxed text-text-secondary">
         Jupyter connection = browser to your Jupyter server. Python kernel =
-        process that runs cells. Reset session clears outputs and restarts the
-        kernel only (not Docker). Run executes every cell in order. Each cell
-        has its own play and delete controls;{" "}
+        process that runs cells. Save as… exports a copy of the notebook to
+        your computer (separate from the file on the Jupyter server). Reset
+        session clears outputs and restarts the kernel only (not Docker). Run
+        executes every cell in order. Each cell has its own play and delete
+        controls;{" "}
         <kbd className="rounded-md border border-foreground/15 bg-foreground/5 px-1.5 py-0.5 font-mono-code text-[10px] text-foreground/90">
           Shift
         </kbd>{" "}

@@ -143,3 +143,20 @@ export function basenameFromPath(path: string): string {
   const s = segments(path);
   return s[s.length - 1] ?? "";
 }
+
+/**
+ * Validates a rename target for a data file under `data/uploads` (single path segment, no traversal).
+ */
+export function sanitizeDataFileBasename(raw: string): string {
+  const t = raw.trim();
+  if (!t || t.length > 200) throw new Error("Name is required (max 200 characters).");
+  if (t.includes("/") || t.includes("\\") || t === "." || t === "..") {
+    throw new Error("File name cannot contain path separators.");
+  }
+  if (!/^[\w\- .()]+$/.test(t)) {
+    throw new Error(
+      "Use only letters, numbers, spaces, and safe punctuation (._- parentheses).",
+    );
+  }
+  return t;
+}

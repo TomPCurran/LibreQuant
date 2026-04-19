@@ -3,13 +3,16 @@ import type { INotebookContent } from "@jupyterlab/nbformat";
 import {
   assertPathOnLibraryTree,
   assertPathUnderRoot,
+  basenameFromPath,
   joinJupyterPath,
   normalizeJupyterPath,
   parentPath,
+  sanitizeDataFileBasename,
   toNotebookFilename,
   toSafeDirectoryName,
 } from "@/lib/jupyter-paths";
 import { pMap } from "@/lib/concurrent";
+import { getDataUploadsRelativePrefix } from "@/lib/data-sources/constants";
 
 /**
  * Jupyter Contents API helpers for the **notebook** library: ensure directories, create notebooks,
@@ -97,6 +100,310 @@ export async function listNotebooksInLibrary(
     return tb - ta;
   });
   return items;
+}
+
+export type DataUploadFileItem = {
+  name: string;
+  path: string;
+  last_modified: string;
+};
+
+/**
+ * List `.csv` / `.xlsx` files under `{libraryRoot}/data/uploads/`.
+ */
+export async function listDataUploadFiles(
+  contents: Contents.IManager,
+  libraryRoot: string,
+): Promise<DataUploadFileItem[]> {
+  assertPathUnderRoot(libraryRoot, libraryRoot);
+  const rel = getDataUploadsRelativePrefix();
+  const uploadsDir = `${normalizeJupyterPath(libraryRoot)}/${rel}`;
+  assertPathUnderRoot(libraryRoot, uploadsDir);
+  await ensureDirectory(contents, libraryRoot, uploadsDir);
+  const dir = await contents.get(uploadsDir, { content: true });
+  const list = (dir.content ?? []) as Contents.IModel[];
+  const items: DataUploadFileItem[] = [];
+  for (const m of list) {
+    if (m.type !== "file" || !m.path) continue;
+    const lower = m.name.toLowerCase();
+    if (!lower.endsWith(".csv") && !lower.endsWith(".xlsx")) continue;
+    assertPathUnderRoot(libraryRoot, m.path);
+    items.push({
+      name: m.name,
+      path: m.path,
+      last_modified: m.last_modified ?? "",
+    });
+  }
+  items.sort((a, b) => {
+    const ta = Date.parse(a.last_modified) || 0;
+    const tb = Date.parse(b.last_modified) || 0;
+    return tb - ta;
+  });
+  return items;
+}
+
+/* ------------------------------------------------------------------ */
+/*  data/uploads — file manager (scoped under notebook library root)   */
+/* ------------------------------------------------------------------ */
+
+function dataUploadsRootPath(libraryRoot: string): string {
+  const root = normalizeJupyterPath(libraryRoot);
+  const rel = getDataUploadsRelativePrefix();
+  return `${root}/${rel}`;
+}
+
+export function assertPathUnderDataUploads(
+  libraryRoot: string,
+  candidate: string,
+): void {
+  assertPathUnderRoot(libraryRoot, candidate);
+  const base = dataUploadsRootPath(libraryRoot);
+  const c = normalizeJupyterPath(candidate);
+  const b = normalizeJupyterPath(base);
+  if (c !== b && !c.startsWith(`${b}/`)) {
+    throw new Error("Path is outside data/uploads.");
+  }
+}
+
+function parseRelativeUploadsDir(rel: string): string {
+  const n = normalizeJupyterPath(rel);
+  if (n.includes("..")) throw new Error("Invalid path.");
+  for (const seg of n.split("/").filter(Boolean)) {
+    if (seg === "." || seg === "..") throw new Error("Invalid path.");
+  }
+  return n;
+}
+
+/** Path under `data/uploads/` (no leading slash), or `""` for the uploads root. */
+export function relativePathWithinDataUploads(
+  libraryRoot: string,
+  absolutePath: string,
+): string {
+  const base = dataUploadsRootPath(libraryRoot);
+  const a = normalizeJupyterPath(absolutePath);
+  const b = normalizeJupyterPath(base);
+  if (a === b) return "";
+  if (!a.startsWith(`${b}/`)) {
+    throw new Error("Path is not under data/uploads.");
+  }
+  return a.slice(b.length + 1);
+}
+
+export type DataLibraryEntry = {
+  name: string;
+  path: string;
+  type: "file" | "directory";
+  last_modified: string;
+};
+
+export async function listDataLibraryDirectory(
+  contents: Contents.IManager,
+  libraryRoot: string,
+  relativeDir: string,
+): Promise<DataLibraryEntry[]> {
+  assertPathUnderRoot(libraryRoot, libraryRoot);
+  const rel = parseRelativeUploadsDir(relativeDir);
+  const uploadsRoot = dataUploadsRootPath(libraryRoot);
+  const dirPath = rel ? `${uploadsRoot}/${rel}` : uploadsRoot;
+  assertPathUnderDataUploads(libraryRoot, dirPath);
+  await ensureDirectory(contents, libraryRoot, dirPath);
+  const dir = await contents.get(dirPath, { content: true });
+  const list = (dir.content ?? []) as Contents.IModel[];
+  const items: DataLibraryEntry[] = [];
+  for (const m of list) {
+    if (!m.path) continue;
+    if (m.type !== "file" && m.type !== "directory") continue;
+    assertPathUnderDataUploads(libraryRoot, m.path);
+    items.push({
+      name: m.name,
+      path: m.path,
+      type: m.type === "directory" ? "directory" : "file",
+      last_modified: m.last_modified ?? "",
+    });
+  }
+  items.sort((a, b) => {
+    if (a.type !== b.type) return a.type === "directory" ? -1 : 1;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+  });
+  return items;
+}
+
+function uniqueBasenameInSet(base: string, existing: Set<string>): string {
+  if (!existing.has(base)) return base;
+  const lastDot = base.lastIndexOf(".");
+  const stem = lastDot > 0 ? base.slice(0, lastDot) : base;
+  const ext = lastDot > 0 ? base.slice(lastDot) : "";
+  for (let i = 2; i < 1000; i++) {
+    const candidate = `${stem}-${i}${ext}`;
+    if (!existing.has(candidate)) return candidate;
+  }
+  return `${stem}-${Date.now()}${ext}`;
+}
+
+export async function createDataLibraryFolder(
+  contents: Contents.IManager,
+  libraryRoot: string,
+  parentRelativeDir: string,
+  folderName: string,
+): Promise<string> {
+  const safe = toSafeDirectoryName(folderName);
+  const parentRel = parseRelativeUploadsDir(parentRelativeDir);
+  const uploadsRoot = dataUploadsRootPath(libraryRoot);
+  const parentPath = parentRel ? `${uploadsRoot}/${parentRel}` : uploadsRoot;
+  assertPathUnderDataUploads(libraryRoot, parentPath);
+  await ensureDirectory(contents, libraryRoot, parentPath);
+  const dir = await contents.get(parentPath, { content: true });
+  const existing = new Set(
+    ((dir.content ?? []) as Contents.IModel[]).map((m) => m.name),
+  );
+  const finalName = uniqueBasenameInSet(safe, existing);
+  const newPath = joinJupyterPath(parentPath, finalName);
+  assertPathUnderDataUploads(libraryRoot, newPath);
+  await contents.save(newPath, { type: "directory" });
+  return newPath;
+}
+
+export async function renameDataLibraryEntry(
+  contents: Contents.IManager,
+  libraryRoot: string,
+  oldPath: string,
+  newBasename: string,
+): Promise<string> {
+  assertPathUnderDataUploads(libraryRoot, oldPath);
+  const parent = parentPath(oldPath);
+  if (!parent) throw new Error("Cannot rename this path.");
+  const model = await contents.get(oldPath, { content: false });
+  const newName =
+    model.type === "directory"
+      ? toSafeDirectoryName(newBasename)
+      : sanitizeDataFileBasename(newBasename);
+  const newPath = joinJupyterPath(parent, newName);
+  assertPathUnderDataUploads(libraryRoot, newPath);
+  if (normalizeJupyterPath(newPath) === normalizeJupyterPath(oldPath)) {
+    return oldPath;
+  }
+  const result = await contents.rename(oldPath, newPath);
+  return result.path;
+}
+
+export async function moveDataLibraryEntry(
+  contents: Contents.IManager,
+  libraryRoot: string,
+  sourcePath: string,
+  targetDirRelative: string,
+): Promise<string> {
+  assertPathUnderDataUploads(libraryRoot, sourcePath);
+  const targetRel = parseRelativeUploadsDir(targetDirRelative);
+  const uploadsRoot = dataUploadsRootPath(libraryRoot);
+  const targetDir = targetRel ? `${uploadsRoot}/${targetRel}` : uploadsRoot;
+  assertPathUnderDataUploads(libraryRoot, targetDir);
+  const sourceParent = parentPath(sourcePath);
+  if (
+    normalizeJupyterPath(sourceParent ?? "") === normalizeJupyterPath(targetDir)
+  ) {
+    return sourcePath;
+  }
+  const srcModel = await contents.get(sourcePath, { content: false });
+  const sourceNorm = normalizeJupyterPath(sourcePath);
+  const targetNorm = normalizeJupyterPath(targetDir);
+  if (
+    srcModel.type === "directory" &&
+    (targetNorm === sourceNorm || targetNorm.startsWith(`${sourceNorm}/`))
+  ) {
+    throw new Error("Cannot move a folder into itself or a subfolder.");
+  }
+  const baseName = basenameFromPath(sourcePath);
+  if (!baseName) throw new Error("Invalid path.");
+  await ensureDirectory(contents, libraryRoot, targetDir);
+  const dir = await contents.get(targetDir, { content: true });
+  const existing = new Set(
+    ((dir.content ?? []) as Contents.IModel[]).map((m) => m.name),
+  );
+  const finalName = uniqueBasenameInSet(baseName, existing);
+  const newPath = joinJupyterPath(targetDir, finalName);
+  assertPathUnderDataUploads(libraryRoot, newPath);
+  if (sourceNorm === normalizeJupyterPath(newPath)) return sourcePath;
+  const result = await contents.rename(sourcePath, newPath);
+  return result.path;
+}
+
+export async function deleteDataLibraryEntry(
+  contents: Contents.IManager,
+  libraryRoot: string,
+  path: string,
+): Promise<void> {
+  assertPathUnderDataUploads(libraryRoot, path);
+  const uploadsRoot = dataUploadsRootPath(libraryRoot);
+  if (normalizeJupyterPath(path) === normalizeJupyterPath(uploadsRoot)) {
+    throw new Error("Cannot delete the uploads root.");
+  }
+  await deleteRecursive(contents, libraryRoot, path);
+}
+
+export type UploadsFolderOption = { relative: string; label: string };
+
+/** Lists every subdirectory under `data/uploads/` (depth-first) for move-to picker. */
+export async function listDataUploadsSubfolders(
+  contents: Contents.IManager,
+  libraryRoot: string,
+): Promise<UploadsFolderOption[]> {
+  const uploadsRoot = dataUploadsRootPath(libraryRoot);
+  await ensureDirectory(contents, libraryRoot, uploadsRoot);
+  const out: UploadsFolderOption[] = [
+    { relative: "", label: "data/uploads" },
+  ];
+  async function walk(dirPath: string, relFromUploads: string): Promise<void> {
+    const dir = await contents.get(dirPath, { content: true });
+    for (const m of (dir.content ?? []) as Contents.IModel[]) {
+      if (m.type !== "directory" || !m.path) continue;
+      assertPathUnderDataUploads(libraryRoot, m.path);
+      const subRel = relFromUploads ? `${relFromUploads}/${m.name}` : m.name;
+      out.push({
+        relative: subRel,
+        label: `data/uploads/${subRel}`,
+      });
+      await walk(m.path, subRel);
+    }
+  }
+  await walk(uploadsRoot, "");
+  return out;
+}
+
+/**
+ * Lists `.csv` / `.xlsx` under `data/uploads/` recursively (newest first).
+ */
+export async function listDataUploadFilesRecursive(
+  contents: Contents.IManager,
+  libraryRoot: string,
+): Promise<DataUploadFileItem[]> {
+  const uploadsRoot = dataUploadsRootPath(libraryRoot);
+  await ensureDirectory(contents, libraryRoot, uploadsRoot);
+  const out: DataUploadFileItem[] = [];
+  async function walk(dirPath: string): Promise<void> {
+    const dir = await contents.get(dirPath, { content: true });
+    for (const m of (dir.content ?? []) as Contents.IModel[]) {
+      if (!m.path) continue;
+      assertPathUnderDataUploads(libraryRoot, m.path);
+      if (m.type === "directory") {
+        await walk(m.path);
+      } else if (m.type === "file") {
+        const lower = m.name.toLowerCase();
+        if (!lower.endsWith(".csv") && !lower.endsWith(".xlsx")) continue;
+        out.push({
+          name: m.name,
+          path: m.path,
+          last_modified: m.last_modified ?? "",
+        });
+      }
+    }
+  }
+  await walk(uploadsRoot);
+  out.sort((a, b) => {
+    const ta = Date.parse(a.last_modified) || 0;
+    const tb = Date.parse(b.last_modified) || 0;
+    return tb - ta;
+  });
+  return out;
 }
 
 /* ------------------------------------------------------------------ */
@@ -253,6 +560,45 @@ function uniqueName(base: string, existing: Set<string>): string {
     if (!existing.has(candidate)) return candidate;
   }
   return `${stem}-${Date.now()}.ipynb`;
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+/**
+ * Upload a binary file (e.g. CSV, XLSX) under the notebook library root.
+ *
+ * @param relativePath - Path relative to `libraryRoot`, e.g. `data/uploads/foo.csv`
+ */
+export async function uploadBinaryFile(
+  contents: Contents.IManager,
+  libraryRoot: string,
+  relativePath: string,
+  bytes: Uint8Array,
+): Promise<string> {
+  const normalized = normalizeJupyterPath(relativePath);
+  if (normalized.includes("..")) {
+    throw new Error("Invalid path.");
+  }
+  const segments = normalized.split("/").filter(Boolean);
+  const path = [normalizeJupyterPath(libraryRoot), ...segments].join("/");
+  assertPathUnderRoot(libraryRoot, path);
+  const par = parentPath(path);
+  if (par) {
+    await ensureDirectory(contents, libraryRoot, par);
+  }
+  await contents.save(path, {
+    type: "file",
+    format: "base64",
+    content: bytesToBase64(bytes),
+  });
+  return path;
 }
 
 export async function uploadNotebookFile(

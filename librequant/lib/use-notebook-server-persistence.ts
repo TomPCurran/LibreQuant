@@ -4,8 +4,10 @@ import { notebookStore } from "@datalayer/jupyter-react";
 import type { Contents } from "@jupyterlab/services";
 import type { INotebookContent } from "@jupyterlab/nbformat";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getNotebookJson, saveNotebookJson } from "@/lib/jupyter-contents";
+import { clientWarn } from "@/lib/client-log";
 import { getNotebookLibraryRoot } from "@/lib/env";
+import { getNotebookJson, saveNotebookJson } from "@/lib/jupyter-contents";
+import { getNotebookContentFromStore } from "@/lib/notebook-store-content";
 
 export type NotebookServerSaveStatus =
   | { phase: "idle"; lastSavedAt: number | null }
@@ -103,10 +105,8 @@ export function useNotebookServerPersistence(
 
       const persist = async () => {
         if (cancelled || !notebookPath) return;
-        const current = notebookStore
-          .getState()
-          .selectNotebookAdapter(notebookId)?.model;
-        if (!current || current.isDisposed) return;
+        const current = getNotebookContentFromStore(notebookId);
+        if (!current) return;
 
         setNotebookSaveStatus((prev) => ({
           phase: "saving",
@@ -118,7 +118,7 @@ export function useNotebookServerPersistence(
             contents,
             libraryRoot,
             notebookPath,
-            current.toJSON() as INotebookContent,
+            current,
           );
           if (cancelled) return;
           const at = Date.now();
@@ -131,7 +131,7 @@ export function useNotebookServerPersistence(
           if (cancelled) return;
           const message =
             e instanceof Error ? e.message : "Notebook save failed.";
-          console.warn("[librequant] Notebook save failed:", e);
+          clientWarn("Notebook save failed:", e);
           setNotebookSaveStatus((prev) => ({
             phase: "error",
             lastSavedAt: prev.lastSavedAt,

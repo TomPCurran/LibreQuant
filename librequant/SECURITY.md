@@ -13,10 +13,16 @@ This project is intended to run **entirely on a trusted local machine** (develop
 - **`NEXT_PUBLIC_JUPYTER_TOKEN`** is bundled into the client (required for in-browser Jupyter). Any process that can read the built app or devtools can see it. Treat it like a **password** for the Jupyter server.
 - **Do not expose Jupyter’s port (8888) to untrusted networks.** Anyone who can reach the server and guess or obtain the token can execute code in the Jupyter environment and access mounted volumes.
 
+## Next.js server and Data sources API
+
+- The **Next.js dev server** (default `http://localhost:3000`) serves the app and **Route Handlers** under `app/api/`, including **`POST /api/data-sources/credentials`** (writes API keys into `librequant/.env.local` on the machine running Next.js) and **`GET /api/data-sources/status`** (non-secret presence flags and custom env key names).
+- These endpoints have **no authentication layer** beyond whatever can reach the HTTP port. The same **trusted local machine** assumption applies: anyone who can open the app or send HTTP to that port can change stored credentials. For typical development, bind Next.js to **loopback** (e.g. `127.0.0.1`) if you need to reduce exposure on a shared LAN; do not expose this stack to untrusted networks without adding explicit auth and hardening.
+
 ## Jupyter configuration (local dev)
 
 - **XSRF checks are disabled** on the Jupyter server (`ServerApp.disable_check_xsrf`) because the Next.js app (`http://localhost:3000`) and Jupyter (`http://localhost:8888`) are **different origins**, and the client uses credentialed requests with the token. This is a deliberate trade-off for local development together with **CORS** restricted to local dev origins in `docker-compose.yml`.
 - **CORS** is limited to localhost / 127.0.0.1 on the dev port; `allow_credentials` is enabled because `@jupyterlab/services` uses credentialed `fetch`.
+- **Token in the URL (server-side sync):** When the Next.js server writes `config/credentials.env` via Jupyter’s Contents API (`lib/jupyter-sync-secrets.ts`), it passes the Jupyter token as a **query parameter**, which matches common Jupyter Server usage. **Reverse proxies, HTTP access logs, or debug logging** that records full request URLs may capture that token. Prefer loopback for Jupyter in local dev; avoid logging full upstream URLs in any deployment that routes this traffic through a proxy.
 
 ## Path injection (kernel)
 
