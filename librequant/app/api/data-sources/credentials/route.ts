@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
+import { isUserDatabaseUrlKey } from "@/lib/data-sources/custom-env-key";
 import { syncDataSourceSecretsToJupyter } from "@/lib/jupyter-sync-secrets";
 import {
   MANAGED_SECRET_KEYS,
   mergeEnvLocal,
   type ManagedSecretKey,
 } from "@/lib/merge-env-local";
+
+/** Reject obvious non-URLs; allow any scheme (postgresql, mysql, sqlite, etc.). */
+function looksLikeDatabaseUrl(s: string): boolean {
+  return s.trim().includes("://");
+}
 
 export const runtime = "nodejs";
 
@@ -58,6 +64,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Invalid type for ${k}` }, { status: 400 });
     } else {
       updates[k] = v;
+    }
+  }
+
+  for (const [key, val] of Object.entries(custom)) {
+    if (val === undefined || val.trim() === "") continue;
+    if (isUserDatabaseUrlKey(key) && !looksLikeDatabaseUrl(val)) {
+      return NextResponse.json(
+        {
+          error: `${key} should look like a URL (include a scheme, e.g. postgresql:// or mysql://).`,
+        },
+        { status: 400 },
+      );
     }
   }
 

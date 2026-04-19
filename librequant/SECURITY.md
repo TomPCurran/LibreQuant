@@ -7,6 +7,7 @@ This project is intended to run **entirely on a trusted local machine** (develop
 - **Trusted machine:** The operator controls the OS, Docker, and browser.
 - **Trusted browser:** The user’s browser session is not assumed to be isolated from malicious extensions or shared computers; avoid using LibreQuant on shared or kiosk machines with secrets in the environment.
 - **Trusted network (optional):** The default Docker setup binds Jupyter to **host loopback** (`127.0.0.1:8888`) so the Jupyter server is not reachable from other machines on the LAN. Do not remap the port to `0.0.0.0` unless you understand the exposure.
+- **PostgreSQL (optional Docker service):** The default Compose file publishes Postgres on **host loopback** (`127.0.0.1:5432` by default; override with `POSTGRES_HOST_PORT` in repo-root `.env` if that port is already taken) so SQL clients on the same machine can connect; it is not advertised on the LAN by default. The bootstrap database user is a **PostgreSQL superuser**, which is appropriate for **local development on a trusted machine** only. Do not bind Postgres to `0.0.0.0` or expose it to untrusted networks without replacing superuser access with least-privilege roles and network controls. Compose uses **default** dev credentials (`librequant` / `librequant`) unless you override `POSTGRES_USER` / `POSTGRES_PASSWORD` in repo-root `.env` (gitignored).
 
 ## Sensitive credentials
 

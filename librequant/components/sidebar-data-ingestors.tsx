@@ -20,7 +20,11 @@ import {
   DATA_SOURCES_CHANGED_EVENT,
   getDataUploadsRelativePrefix,
 } from "@/lib/data-sources/constants";
-import type { ManagedSecretKey } from "@/lib/data-sources/custom-env-key";
+import {
+  isUserDatabaseUrlKey,
+  slugFromUserDatabaseUrlKey,
+  type ManagedSecretKey,
+} from "@/lib/data-sources/custom-env-key";
 import { useDataSourcesStatusOptional } from "@/lib/data-sources-status-context";
 import { getNotebookLibraryRoot } from "@/lib/env";
 import {
@@ -156,6 +160,7 @@ export function SidebarDataIngestors() {
     dataSourcesStatus?.snapshot.credentialsPresent ?? fallbackPresence;
   const customEnvKeys =
     dataSourcesStatus?.snapshot.customEnvKeys ?? fallbackCustomKeys;
+  const [databasesOpen, setDatabasesOpen] = useState(true);
   const [dataFolderOpen, setDataFolderOpen] = useState(true);
   const [uploadsFolderOpen, setUploadsFolderOpen] = useState(true);
 
@@ -178,7 +183,28 @@ export function SidebarDataIngestors() {
 
   const alpacaComplete =
     Boolean(presence.ALPACA_API_KEY) && Boolean(presence.ALPACA_SECRET_KEY);
-  const customCount = customEnvKeys.length;
+  const userDatabaseUrlKeys = useMemo(
+    () => customEnvKeys.filter((k) => isUserDatabaseUrlKey(k)).sort(),
+    [customEnvKeys],
+  );
+  const genericCustomKeys = useMemo(
+    () => customEnvKeys.filter((k) => !isUserDatabaseUrlKey(k)),
+    [customEnvKeys],
+  );
+  const customCount = genericCustomKeys.length;
+
+  const databaseRows = useMemo(() => {
+    const rows: { id: string; label: string }[] = [
+      { id: "pg-docker-default", label: "PostgreSQL (Docker default)" },
+    ];
+    for (const k of userDatabaseUrlKeys) {
+      rows.push({
+        id: k,
+        label: slugFromUserDatabaseUrlKey(k) ?? k,
+      });
+    }
+    return rows;
+  }, [userDatabaseUrlKeys]);
 
   /** Active providers only: yfinance needs no key; others appear when configured. */
   const activeKeyRows = useMemo(() => {
@@ -407,6 +433,60 @@ export function SidebarDataIngestors() {
                         {row.count}
                       </span>
                     ) : null}
+                  </li>
+                ))}
+              </ul>
+            )
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => setDatabasesOpen((v) => !v)}
+            className="flex w-full items-center gap-1 rounded-lg px-1.5 py-1 text-left transition hover:bg-foreground/5"
+            aria-expanded={databasesOpen}
+            aria-label={
+              databasesOpen ? "Collapse available databases" : "Expand available databases"
+            }
+          >
+            {databasesOpen ? (
+              <ChevronDown
+                className="size-3 shrink-0 text-text-secondary"
+                aria-hidden
+              />
+            ) : (
+              <ChevronRight
+                className="size-3 shrink-0 text-text-secondary"
+                aria-hidden
+              />
+            )}
+            <span className="text-[9px] font-semibold uppercase tracking-widest text-text-secondary">
+              Available databases
+            </span>
+            {!statusLoading ? (
+              <span className="ml-auto tabular-nums text-[9px] text-text-secondary">
+                {databaseRows.length}
+              </span>
+            ) : null}
+          </button>
+
+          {databasesOpen ? (
+            statusLoading ? (
+              <div className="flex items-center gap-1.5 px-2 py-1.5 text-[11px] text-text-secondary">
+                <Loader2 className="size-3 animate-spin text-alpha" aria-hidden />
+                Loading…
+              </div>
+            ) : (
+              <ul className="mb-2 space-y-1 px-1">
+                {databaseRows.map((row) => (
+                  <li
+                    key={row.id}
+                    className="flex items-center gap-1.5 rounded-lg px-1.5 py-0.5 text-[10px] text-text-secondary"
+                  >
+                    <CheckCircle2
+                      className="size-3 shrink-0 text-alpha"
+                      aria-hidden
+                    />
+                    <span className="truncate text-text-primary">{row.label}</span>
                   </li>
                 ))}
               </ul>

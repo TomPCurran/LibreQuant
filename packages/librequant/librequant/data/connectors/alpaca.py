@@ -4,11 +4,26 @@ from __future__ import annotations
 
 import os
 from datetime import UTC, datetime
+from typing import Any
 
 import pandas as pd
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 _ALPACA_DATA = "https://data.alpaca.markets/v2"
+
+_SESSION = requests.Session()
+_ADAPTER = HTTPAdapter(
+    max_retries=Retry(
+        total=4,
+        backoff_factor=0.4,
+        status_forcelist=(429, 502, 503, 504),
+        allowed_methods=("GET",),
+    )
+)
+_SESSION.mount("https://", _ADAPTER)
+_SESSION.mount("http://", _ADAPTER)
 
 
 def _timeframe_for_interval(interval: str) -> str:
@@ -45,7 +60,7 @@ def fetch_alpaca_bars(
     end_dt = datetime.fromtimestamp(end.timestamp(), tz=UTC)
 
     url = f"{_ALPACA_DATA}/stocks/{symbol.upper()}/bars"
-    base_params: dict = {
+    base_params: dict[str, Any] = {
         "timeframe": timeframe,
         "start": start_dt.isoformat().replace("+00:00", "Z"),
         "end": end_dt.isoformat().replace("+00:00", "Z"),
@@ -58,13 +73,13 @@ def fetch_alpaca_bars(
         "APCA-API-SECRET-KEY": secret,
     }
 
-    rows: list[dict] = []
+    rows: list[dict[str, Any]] = []
     page_token: str | None = None
     while True:
         params = dict(base_params)
         if page_token:
             params["page_token"] = page_token
-        r = requests.get(url, params=params, headers=headers, timeout=60)
+        r = _SESSION.get(url, params=params, headers=headers, timeout=60)
         r.raise_for_status()
         data = r.json()
         for b in data.get("bars") or []:

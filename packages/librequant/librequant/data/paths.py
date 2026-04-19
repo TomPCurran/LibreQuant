@@ -59,9 +59,10 @@ def resolve_data_path(relative: str) -> Path:
         parts = parts[1:]
     if not parts:
         raise ValueError("Path is empty.")
-    full = get_data_root() / "uploads" / Path(*parts)
+    root = get_data_root()
+    full = root / "uploads" / Path(*parts)
     try:
-        full.relative_to(get_data_root())
+        full.relative_to(root)
     except ValueError as e:
         raise ValueError("Path escapes data root.") from e
     return full

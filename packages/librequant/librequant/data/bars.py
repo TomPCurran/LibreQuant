@@ -6,7 +6,7 @@ from typing import Callable
 
 import pandas as pd
 
-from librequant.data.cache import cache_paths, read_meta, write_meta
+from librequant.data.cache import cache_paths, read_meta, write_meta, write_parquet_atomic
 from librequant.data.credential_env import load_data_source_secrets
 from librequant.data.connectors.alpaca import fetch_alpaca_bars
 from librequant.data.connectors.polygon import fetch_polygon_bars
@@ -21,6 +21,18 @@ _SOURCE_FETCH: dict[str, Fetcher] = {
     "polygon": fetch_polygon_bars,
     "tiingo": fetch_tiingo_bars,
 }
+
+
+def _normalize_bars_index(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalize to timezone-naive DatetimeIndex so cache hits compare reliably across providers."""
+    if df.empty:
+        return df
+    idx = pd.to_datetime(df.index, utc=False)
+    if getattr(idx, "tz", None) is not None:
+        idx = idx.tz_convert(None)
+    out = df.copy()
+    out.index = idx
+    return out
 
 
 def _normalize_source(source: str) -> str:
@@ -53,7 +65,8 @@ def get_bars(
     start, end
         Start and end dates (strings ``YYYY-MM-DD`` or pandas timestamps).
     source
-        ``"yfinance"``, ``"alpaca"``, ``"polygon"``, or ``"tiingo"`` (last two not implemented).
+        ``"yfinance"``, ``"alpaca"``, ``"polygon"``, or ``"tiingo"``. Polygon and Tiingo raise
+        ``NotImplementedError`` until their connectors are added.
     interval
         Interval passed to the provider (default ``1d``).
 
@@ -81,7 +94,9 @@ def get_bars(
         try:
             existing = pd.read_parquet(pq_path)
             existing.index = pd.to_datetime(existing.index)
-        except (OSError, ValueError):
+            existing = _normalize_bars_index(existing)
+        except Exception:
+            # OSError, corrupt Parquet/Arrow, or bad index: refetch (cache is best-effort).
             existing = None
 
     meta_d = read_meta(meta_path)
@@ -127,11 +142,11 @@ def get_bars(
         return merged
 
     merged = _ensure_ohlcv_columns(merged)
+    merged = _normalize_bars_index(merged)
     merged = merged.sort_index()
     merged = merged[~merged.index.duplicated(keep="last")]
 
-    pq_path.parent.mkdir(parents=True, exist_ok=True)
-    merged.to_parquet(pq_path)
+    write_parquet_atomic(merged, pq_path)
     idx_min = merged.index.min()
     idx_max = merged.index.max()
     write_meta(
