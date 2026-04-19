@@ -1,6 +1,29 @@
 services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: librequant
+      # Defaults are local-dev only (loopback-bound); override via repo-root .env if needed.
+      POSTGRES_USER: ${POSTGRES_USER:-librequant}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-librequant}
+    ports:
+      # Host loopback only (see SECURITY.md). If 5432 is already in use, set POSTGRES_HOST_PORT in repo-root .env (e.g. 5433).
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # $$ → $ in the container shell so POSTGRES_USER from the image env is used
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d librequant"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   jupyter:
     image: quay.io/jupyter/scipy-notebook:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
     # Must match getJupyterUserHomeAbsolute() + getStrategyLibraryRoot() in lib/env.ts (default: /home/jovyan/work/librequant/strategies).
     env_file:
       - path: ./librequant/.env.local
@@ -9,6 +32,9 @@ services:
       PYTHONPATH: /home/jovyan/work/librequant/strategies
       JUPYTER_USER_HOME: /home/jovyan
       LIBREQUANT_NOTEBOOK_ROOT: work/librequant
+      # In-container hostname; kernels use this URL. Host tools use 127.0.0.1 — see Data sources UI.
+      # Use a POSTGRES_PASSWORD without URL-reserved characters (@ : / ? # %) or URL-encode manually in a custom override.
+      LIBREQUANT_DATABASE_URL: postgresql://${POSTGRES_USER:-librequant}:${POSTGRES_PASSWORD:-librequant}@postgres:5432/librequant
     volumes:
       # Host folder → LibreQuant workspace inside the container (notebooks, data/uploads, config/).
       # Override with LIBREQUANT_JUPYTER_WORKSPACE_HOST in a repo-root .env file (see env.docker.example).
@@ -27,12 +53,17 @@ services:
       - bash
       - -c
       - |
-        mkdir -p /home/jovyan/work/librequant/strategies
+        mkdir -p /home/jovyan/work/librequant/strategies \
+          /home/jovyan/work/librequant/data/uploads \
+          /home/jovyan/work/librequant/config
         # Versions pinned in packages/librequant/pyproject.toml; pip still resolves on each start unless cached.
         pip install -q pip setuptools wheel
-        pip install -q /opt/librequant
+        pip install -q '/opt/librequant[postgres]'
         exec start-notebook.sh \
           --IdentityProvider.token=devtoken \
           --ServerApp.disable_check_xsrf=True \
-          '--ServerApp.allow_origin_pat=^http://(localhost|127\.0\.0\.1):3000$' \
+          '--ServerApp.allow_origin_pat=^http://(localhost|127\.0\.0\.1):3000$$' \
           --ServerApp.allow_credentials=True
+
+volumes:
+  postgres_data:

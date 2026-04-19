@@ -16,7 +16,7 @@ import {
 export const metadata: Metadata = {
   title: "Data sources | LibreQuant",
   description:
-    "Configure API keys in .env.local and manage CSV and Excel uploads in your Jupyter workspace.",
+    "Configure API keys and named Postgres connections (LIBREQUANT_DB_*_URL) in .env.local, use Docker Compose PostgreSQL, and manage tabular uploads in your Jupyter workspace.",
 };
 
 export default async function DataSourcesPage() {
@@ -45,7 +45,7 @@ export default async function DataSourcesPage() {
       <WorkbenchShell
         sectionEyebrow="Workspace"
         title="Data sources"
-        subtitle="Credentials in .env.local and tabular file uploads under data/uploads in your Jupyter workspace."
+        subtitle="API keys and additional database connections (LIBREQUANT_DB_*_URL) in .env.local, default Postgres via Docker Compose, and tabular uploads under data/uploads in your Jupyter workspace."
       >
         <DataSourcesPanel />
       </WorkbenchShell>

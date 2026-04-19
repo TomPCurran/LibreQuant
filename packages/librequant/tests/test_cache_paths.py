@@ -1,6 +1,5 @@
 """Cache path and merge helpers."""
 
-import json
 import os
 from pathlib import Path
 from unittest.mock import patch
@@ -8,7 +7,6 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from librequant.data import cache as cache_mod
 from librequant.data.bars import get_bars
 from librequant.data.cache import cache_paths, read_meta, write_meta
 

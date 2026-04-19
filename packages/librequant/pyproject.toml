@@ -18,7 +18,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "ruff>=0.4"]
+postgres = ["psycopg[binary]>=3.1"]
+dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.8", "pandas-stubs", "types-requests"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["librequant"]
@@ -29,3 +30,24 @@ asyncio_default_fixture_loop_scope = "function"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_ignores = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = "yfinance.*"
+ignore_missing_imports = true
+
+# Pandas/psycopg stubs are strict about overloads that do not match dynamic kwargs / psycopg connections.
+[[tool.mypy.overrides]]
+module = [
+    "librequant.data.tabular",
+    "librequant.data.postgres",
+    "librequant.data.bars",
+    "librequant.data.connectors.yfinance",
+    "librequant.data.connectors.alpaca",
+]
+disable_error_code = ["call-overload", "no-any-return", "unused-ignore", "attr-defined"]
