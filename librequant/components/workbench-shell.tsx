@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,6 +9,19 @@ import { SidebarNotebookTree } from "@/components/sidebar-notebook-tree";
 import { SidebarStrategyTree } from "@/components/sidebar-strategy-tree";
 import { useWorkbenchStore } from "@/lib/stores/workbench-store";
 import { LineChart, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+
+const SidebarDataIngestors = dynamic(
+  () => import("@/components/sidebar-data-ingestors.client"),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="mt-3 h-20 animate-pulse rounded-lg bg-foreground/5"
+        aria-hidden
+      />
+    ),
+  },
+);
 
 function NavItem({
   label,
@@ -75,6 +89,11 @@ export function WorkbenchShell({
           <>
             <nav className="flex flex-col gap-0.5" aria-label="Primary">
               <NavItem label="Workspace" href="/" active={pathname === "/"} />
+              <NavItem
+                label="Data sources"
+                href="/data-sources"
+                active={pathname === "/data-sources"}
+              />
             </nav>
 
             <Suspense fallback={null}>
@@ -85,10 +104,26 @@ export function WorkbenchShell({
               <SidebarStrategyTree />
             </Suspense>
 
-            <nav className="mt-1 flex flex-col gap-0.5" aria-label="Secondary">
-              <NavItem label="Data Ingestors" href="#" />
-              <NavItem label="Portfolio Monitor" href="#" />
-            </nav>
+            <SidebarDataIngestors />
+
+            <div className="mt-4 border-t border-foreground/10 pt-3">
+              <p
+                id="sidebar-portfolio-monitor-heading"
+                className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary"
+              >
+                Portfolio Monitor
+              </p>
+              <nav
+                className="flex flex-col gap-0.5"
+                aria-labelledby="sidebar-portfolio-monitor-heading"
+              >
+                <NavItem
+                  label="Documentation"
+                  href="/documentation"
+                  active={pathname === "/documentation"}
+                />
+              </nav>
+            </div>
           </>
         ) : null}
       </aside>

@@ -96,7 +96,7 @@ function isSafeUnixPathForPythonEmbed(s: string): boolean {
  * @returns Validated path from `NEXT_PUBLIC_JUPYTER_USER_HOME`, or `/home/jovyan` when unset or invalid.
  *
  * @remarks Default matches `quay.io/jupyter/scipy-notebook` and the repository root `docker-compose.yml`
- *   (`jupyter-librequant-work:/home/jovyan/work`). Override if the image uses a different user home.
+ *   (host path bind-mounted to `/home/jovyan/work/librequant`). Override if the image uses a different user home.
  */
 export function getJupyterUserHomeAbsolute(): string {
   const raw = process.env.NEXT_PUBLIC_JUPYTER_USER_HOME?.trim();

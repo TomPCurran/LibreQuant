@@ -1,7 +1,8 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import { StrategyEditorShell } from "@/components/strategies/strategy-editor-shell";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Edit Strategy | LibreQuant",
   description: "Edit a Python strategy file in the browser-based code editor.",
 };
