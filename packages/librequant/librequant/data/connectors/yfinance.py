@@ -11,7 +11,11 @@ import pandas as pd
 
 @contextmanager
 def _suppress_yfinance_failed_download_log() -> Iterator[None]:
-    """yfinance logs ERROR for empty sub-ranges (e.g. holidays); gap-fill can trigger benign cases."""
+    """yfinance logs ERROR for empty sub-ranges (e.g. holidays); gap-fill can trigger benign cases.
+
+    Keep the body minimal (only ``yf.download``) so other failures in the same ``with`` block
+    are not accidentally logged at CRITICAL.
+    """
     log = logging.getLogger("yfinance")
     prev = log.level
     log.setLevel(logging.CRITICAL)
@@ -37,6 +41,8 @@ def fetch_yfinance_bars(
             interval=interval,
             progress=False,
             auto_adjust=False,
+            # Single-threaded: deterministic ordering and fewer thread quirks in notebooks;
+            # slower if you later batch many symbols in one call.
             threads=False,
         )
     if raw is None or raw.empty:

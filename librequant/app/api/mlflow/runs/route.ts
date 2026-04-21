@@ -1,5 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import {
+  isUnreachableFetchError,
+  mlflowProxyForbiddenIfRequired,
+  mlflowUnreachableResponse,
+  mlflowUpstreamJsonError,
+} from "@/lib/mlflow-http";
 import { mapRestRunToMlflowRun } from "@/lib/mlflow-map-run";
 import { fetchMlflow, getMlflowServerBaseUrl } from "@/lib/mlflow-server";
 import type {
@@ -11,20 +17,25 @@ import type {
 
 export const runtime = "nodejs";
 
-const MLFLOW_UNREACHABLE =
-  "MLflow server unreachable. Start Docker Compose (mlflow service on 127.0.0.1:5000) or set MLFLOW_TRACKING_URI in .env.local.";
-
 export async function GET(request: NextRequest) {
-  const experimentName = request.nextUrl.searchParams.get("experiment_name")?.trim();
+  const denied = mlflowProxyForbiddenIfRequired(request);
+  if (denied) return denied;
+
+  const experimentName = request.nextUrl.searchParams
+    .get("experiment_name")
+    ?.trim();
   if (!experimentName) {
     return NextResponse.json(
       { error: "Missing required query param: experiment_name" },
       { status: 400 },
     );
   }
-  const filterString = request.nextUrl.searchParams.get("filter_string")?.trim() ?? "";
+  const filterString =
+    request.nextUrl.searchParams.get("filter_string")?.trim() ?? "";
   const maxRaw = request.nextUrl.searchParams.get("max_results");
-  const maxResults = maxRaw ? Math.min(500, Math.max(1, Number.parseInt(maxRaw, 10) || 50)) : 50;
+  const maxResults = maxRaw
+    ? Math.min(500, Math.max(1, Number.parseInt(maxRaw, 10) || 50))
+    : 50;
 
   const base = getMlflowServerBaseUrl();
 
@@ -38,7 +49,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(empty);
     }
     if (!expRes.ok) {
-      return NextResponse.json({ error: MLFLOW_UNREACHABLE }, { status: 503 });
+      return mlflowUpstreamJsonError(expRes);
     }
 
     const expJson = (await expRes.json()) as MlflowExperimentDetail;
@@ -56,17 +67,21 @@ export async function GET(request: NextRequest) {
     });
 
     if (!searchRes.ok) {
-      return NextResponse.json({ error: MLFLOW_UNREACHABLE }, { status: 503 });
+      return mlflowUpstreamJsonError(searchRes);
     }
 
     const searchJson = (await searchRes.json()) as MlflowRunsSearchRestResponse;
     const runsRaw: MlflowRestRun[] = searchJson.runs ?? [];
-    const runs = runsRaw.map((r) =>
-      mapRestRunToMlflowRun(r, experimentName),
-    );
+    const runs = runsRaw.map((r) => mapRestRunToMlflowRun(r, experimentName));
     const body: MlflowRunsSearchResponse = { runs };
     return NextResponse.json(body);
-  } catch {
-    return NextResponse.json({ error: MLFLOW_UNREACHABLE }, { status: 503 });
+  } catch (e) {
+    if (isUnreachableFetchError(e)) {
+      return mlflowUnreachableResponse();
+    }
+    return NextResponse.json(
+      { error: "Unexpected error", detail: String(e) },
+      { status: 500 },
+    );
   }
 }

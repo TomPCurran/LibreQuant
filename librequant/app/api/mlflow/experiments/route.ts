@@ -1,5 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
+import {
+  isUnreachableFetchError,
+  mlflowProxyForbiddenIfRequired,
+  mlflowUnreachableResponse,
+  mlflowUpstreamJsonError,
+} from "@/lib/mlflow-http";
 import { fetchMlflow, getMlflowServerBaseUrl } from "@/lib/mlflow-server";
 import type {
   MlflowExperimentsSearchResponse,
@@ -8,10 +14,10 @@ import type {
 
 export const runtime = "nodejs";
 
-const MLFLOW_UNREACHABLE =
-  "MLflow server unreachable. Start Docker Compose (mlflow service on 127.0.0.1:5000) or set MLFLOW_TRACKING_URI in .env.local.";
+export async function GET(request: NextRequest) {
+  const denied = mlflowProxyForbiddenIfRequired(request);
+  if (denied) return denied;
 
-export async function GET() {
   const base = getMlflowServerBaseUrl();
   try {
     const res = await fetchMlflow(`${base}/api/2.0/mlflow/experiments/search`, {
@@ -20,7 +26,7 @@ export async function GET() {
       body: JSON.stringify({ max_results: 500 }),
     });
     if (!res.ok) {
-      return NextResponse.json({ error: MLFLOW_UNREACHABLE }, { status: 503 });
+      return mlflowUpstreamJsonError(res);
     }
     const data = (await res.json()) as MlflowExperimentsSearchRestResponse;
     const raw = data.experiments ?? [];
@@ -31,7 +37,13 @@ export async function GET() {
       })),
     };
     return NextResponse.json(body);
-  } catch {
-    return NextResponse.json({ error: MLFLOW_UNREACHABLE }, { status: 503 });
+  } catch (e) {
+    if (isUnreachableFetchError(e)) {
+      return mlflowUnreachableResponse();
+    }
+    return NextResponse.json(
+      { error: "Unexpected error", detail: String(e) },
+      { status: 500 },
+    );
   }
 }
