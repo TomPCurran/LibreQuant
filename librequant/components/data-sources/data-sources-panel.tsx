@@ -1,7 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useId, useMemo, useState, type ComponentType } from "react";
+import {
+  useCallback,
+  useId,
+  useMemo,
+  useState,
+  type ComponentType,
+} from "react";
 import {
   ChevronDown,
   Database,
@@ -68,7 +74,9 @@ function DataSourcesAccordionSection({
       >
         <span className="flex min-w-0 items-center gap-2 text-alpha">
           <Icon className="size-5 shrink-0" aria-hidden />
-          <span className="heading-brand text-base text-foreground">{title}</span>
+          <span className="heading-brand text-base text-foreground">
+            {title}
+          </span>
         </span>
         <ChevronDown
           className={`size-5 shrink-0 text-text-secondary transition-transform duration-300 ease-out motion-reduce:transition-none ${
@@ -307,7 +315,10 @@ export function DataSourcesPanel() {
 
     const managed: Partial<Record<ManagedSecretKey, string>> = {};
     (
-      ["ALPACA_API_KEY", "ALPACA_SECRET_KEY"] as const satisfies readonly ManagedSecretKey[]
+      [
+        "ALPACA_API_KEY",
+        "ALPACA_SECRET_KEY",
+      ] as const satisfies readonly ManagedSecretKey[]
     ).forEach((k) => {
       const v = form[k].trim();
       if (v) managed[k] = v;
@@ -395,23 +406,33 @@ export function DataSourcesPanel() {
       <DataSourcesAccordionSection title="API keys" icon={KeyRound} defaultOpen>
         <p className="mb-6 text-sm font-light text-text-secondary">
           Values are written only to{" "}
-          <code className="font-mono-code text-[12px]">librequant/.env.local</code> on the machine
-          running Next.js ({envLocalFileExists ? "file exists" : "file will be created"}). Secrets
-          are not shown after save — use <strong className="font-medium text-text-primary">Edit</strong>{" "}
-          to rotate a stored key.
+          <code className="font-mono-code text-[12px]">
+            librequant/.env.local
+          </code>{" "}
+          on the machine running Next.js (
+          {envLocalFileExists ? "file exists" : "file will be created"}).
+          Secrets are not shown after save — use{" "}
+          <strong className="font-medium text-text-primary">Edit</strong> to
+          rotate a stored key.
         </p>
 
         <form onSubmit={onSaveCredentials} className="space-y-6">
           {/* Alpaca */}
           <div className="rounded-xl border border-foreground/8 p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold text-text-primary">Alpaca</h3>
+              <h3 className="text-sm font-semibold text-text-primary">
+                Alpaca
+              </h3>
               {alpacaComplete && !showAlpacaFields ? (
                 <button
                   type="button"
                   onClick={() => {
                     setAlpacaEditMode(true);
-                    setForm((f) => ({ ...f, ALPACA_API_KEY: "", ALPACA_SECRET_KEY: "" }));
+                    setForm((f) => ({
+                      ...f,
+                      ALPACA_API_KEY: "",
+                      ALPACA_SECRET_KEY: "",
+                    }));
                   }}
                   className="inline-flex items-center gap-1.5 rounded-full border border-alpha/30 bg-alpha/10 px-3 py-1.5 text-xs font-medium text-alpha transition hover:bg-alpha/15"
                 >
@@ -423,11 +444,17 @@ export function DataSourcesPanel() {
             {showAlpacaFields ? (
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm">
-                  <span className="mb-1 block font-medium text-text-primary">ALPACA_API_KEY</span>
+                  <span className="mb-1 block font-medium text-text-primary">
+                    ALPACA_API_KEY
+                  </span>
                   <input
                     type="password"
                     autoComplete="off"
-                    placeholder={presence.ALPACA_API_KEY ? "New value to rotate" : "Required"}
+                    placeholder={
+                      presence.ALPACA_API_KEY
+                        ? "New value to rotate"
+                        : "Required"
+                    }
                     value={form.ALPACA_API_KEY}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, ALPACA_API_KEY: e.target.value }))
@@ -436,14 +463,23 @@ export function DataSourcesPanel() {
                   />
                 </label>
                 <label className="block text-sm">
-                  <span className="mb-1 block font-medium text-text-primary">ALPACA_SECRET_KEY</span>
+                  <span className="mb-1 block font-medium text-text-primary">
+                    ALPACA_SECRET_KEY
+                  </span>
                   <input
                     type="password"
                     autoComplete="off"
-                    placeholder={presence.ALPACA_SECRET_KEY ? "New value to rotate" : "Required"}
+                    placeholder={
+                      presence.ALPACA_SECRET_KEY
+                        ? "New value to rotate"
+                        : "Required"
+                    }
                     value={form.ALPACA_SECRET_KEY}
                     onChange={(e) =>
-                      setForm((f) => ({ ...f, ALPACA_SECRET_KEY: e.target.value }))
+                      setForm((f) => ({
+                        ...f,
+                        ALPACA_SECRET_KEY: e.target.value,
+                      }))
                     }
                     className="mt-1 w-full rounded-xl border border-foreground/10 bg-background/80 px-3 py-2 text-sm text-text-primary outline-none ring-alpha/30 placeholder:text-text-secondary/70 focus-visible:ring-2"
                   />
@@ -451,8 +487,9 @@ export function DataSourcesPanel() {
               </div>
             ) : (
               <p className="text-sm text-text-secondary">
-                Keys are stored locally. Choose <strong className="text-text-primary">Edit keys</strong>{" "}
-                above to replace them.
+                Keys are stored locally. Choose{" "}
+                <strong className="text-text-primary">Edit keys</strong> above
+                to replace them.
               </p>
             )}
             {alpacaComplete && showAlpacaFields ? (
@@ -461,7 +498,11 @@ export function DataSourcesPanel() {
                 className="mt-3 text-xs font-medium text-text-secondary underline-offset-4 hover:text-text-primary hover:underline"
                 onClick={() => {
                   setAlpacaEditMode(false);
-                  setForm((f) => ({ ...f, ALPACA_API_KEY: "", ALPACA_SECRET_KEY: "" }));
+                  setForm((f) => ({
+                    ...f,
+                    ALPACA_API_KEY: "",
+                    ALPACA_SECRET_KEY: "",
+                  }));
                 }}
               >
                 Cancel
@@ -473,19 +514,32 @@ export function DataSourcesPanel() {
           <div className="rounded-xl border border-foreground/8 p-4">
             <h3 className="text-sm font-semibold text-text-primary">
               Polygon{" "}
-              <span className="font-normal text-text-secondary">(coming soon)</span>
+              <span className="font-normal text-text-secondary">
+                (coming soon)
+              </span>
             </h3>
             <p className="mt-2 text-sm text-text-secondary">
               The Python connector is not implemented yet —{" "}
-              <code className="font-mono-code text-[12px]">get_bars(..., source=&quot;polygon&quot;)</code>{" "}
+              <code className="font-mono-code text-[12px]">
+                get_bars(..., source=&quot;polygon&quot;)
+              </code>{" "}
               will raise until it ships. You can add{" "}
-              <code className="font-mono-code text-[12px]">POLYGON_API_KEY</code> manually in{" "}
-              <code className="font-mono-code text-[12px]">librequant/.env.local</code> to reserve it.
+              <code className="font-mono-code text-[12px]">
+                POLYGON_API_KEY
+              </code>{" "}
+              manually in{" "}
+              <code className="font-mono-code text-[12px]">
+                librequant/.env.local
+              </code>{" "}
+              to reserve it.
             </p>
             {presence.POLYGON_API_KEY ? (
               <p className="mt-3 text-sm text-text-secondary">
-                A value is present in <code className="font-mono-code text-[12px]">.env.local</code>{" "}
-                (not used by <code className="font-mono-code text-[12px]">get_bars</code> yet).
+                A value is present in{" "}
+                <code className="font-mono-code text-[12px]">.env.local</code>{" "}
+                (not used by{" "}
+                <code className="font-mono-code text-[12px]">get_bars</code>{" "}
+                yet).
                 <button
                   type="button"
                   disabled={saving}
@@ -502,19 +556,30 @@ export function DataSourcesPanel() {
           <div className="rounded-xl border border-foreground/8 p-4">
             <h3 className="text-sm font-semibold text-text-primary">
               Tiingo{" "}
-              <span className="font-normal text-text-secondary">(coming soon)</span>
+              <span className="font-normal text-text-secondary">
+                (coming soon)
+              </span>
             </h3>
             <p className="mt-2 text-sm text-text-secondary">
               The Python connector is not implemented yet —{" "}
-              <code className="font-mono-code text-[12px]">get_bars(..., source=&quot;tiingo&quot;)</code>{" "}
+              <code className="font-mono-code text-[12px]">
+                get_bars(..., source=&quot;tiingo&quot;)
+              </code>{" "}
               will raise until it ships. You can add{" "}
-              <code className="font-mono-code text-[12px]">TIINGO_API_KEY</code> manually in{" "}
-              <code className="font-mono-code text-[12px]">librequant/.env.local</code> to reserve it.
+              <code className="font-mono-code text-[12px]">TIINGO_API_KEY</code>{" "}
+              manually in{" "}
+              <code className="font-mono-code text-[12px]">
+                librequant/.env.local
+              </code>{" "}
+              to reserve it.
             </p>
             {presence.TIINGO_API_KEY ? (
               <p className="mt-3 text-sm text-text-secondary">
-                A value is present in <code className="font-mono-code text-[12px]">.env.local</code>{" "}
-                (not used by <code className="font-mono-code text-[12px]">get_bars</code> yet).
+                A value is present in{" "}
+                <code className="font-mono-code text-[12px]">.env.local</code>{" "}
+                (not used by{" "}
+                <code className="font-mono-code text-[12px]">get_bars</code>{" "}
+                yet).
                 <button
                   type="button"
                   disabled={saving}
@@ -530,17 +595,38 @@ export function DataSourcesPanel() {
           {/* Custom API keys */}
           <div className="rounded-xl border border-foreground/8 p-4">
             <div className="mb-3">
-              <h3 className="text-sm font-semibold text-text-primary">Custom API keys</h3>
+              <h3 className="text-sm font-semibold text-text-primary">
+                Custom API keys
+              </h3>
               <p className="mt-1 text-xs font-light leading-relaxed text-text-secondary">
-                Add any uppercase env name (e.g. <code className="font-mono-code text-[11px]">MY_DATA_API_KEY</code>
-                ) and secret.                 Do not use <code className="font-mono-code text-[11px]">LIBREQUANT_DATABASE_URL</code> or{" "}
-                <code className="font-mono-code text-[11px]">LIBREQUANT_DB_*_URL</code> — use{" "}
-                <strong className="font-medium text-text-primary">Database connections</strong> below.
-                After saving, keys sync to Jupyter — use{" "}
-                <code className="font-mono-code text-[11px]">load_data_source_secrets()</code> or call{" "}
-                <code className="font-mono-code text-[11px]">get_bars</code> so <code className="font-mono-code text-[11px]">os.environ</code>{" "}
+                Add any uppercase env name (e.g.{" "}
+                <code className="font-mono-code text-[11px]">
+                  MY_DATA_API_KEY
+                </code>
+                ) and secret. Do not use{" "}
+                <code className="font-mono-code text-[11px]">
+                  LIBREQUANT_DATABASE_URL
+                </code>{" "}
+                or{" "}
+                <code className="font-mono-code text-[11px]">
+                  LIBREQUANT_DB_*_URL
+                </code>{" "}
+                — use{" "}
+                <strong className="font-medium text-text-primary">
+                  Database connections
+                </strong>{" "}
+                below. After saving, keys sync to Jupyter — use{" "}
+                <code className="font-mono-code text-[11px]">
+                  load_data_source_secrets()
+                </code>{" "}
+                or call{" "}
+                <code className="font-mono-code text-[11px]">get_bars</code> so{" "}
+                <code className="font-mono-code text-[11px]">os.environ</code>{" "}
                 is updated. Names cannot overlap built-in providers or{" "}
-                <code className="font-mono-code text-[11px]">NEXT_PUBLIC_*</code>.
+                <code className="font-mono-code text-[11px]">
+                  NEXT_PUBLIC_*
+                </code>
+                .
               </p>
             </div>
 
@@ -550,11 +636,15 @@ export function DataSourcesPanel() {
                 .map((name) => (
                   <li
                     key={name}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-foreground/10 bg-foreground/[0.02] px-3 py-2"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-foreground/10 bg-foreground/2 px-3 py-2"
                   >
                     <div className="min-w-0">
-                      <code className="font-mono-code text-[13px] text-alpha">{name}</code>
-                      <span className="ml-2 text-xs text-text-secondary">stored</span>
+                      <code className="font-mono-code text-[13px] text-alpha">
+                        {name}
+                      </code>
+                      <span className="ml-2 text-xs text-text-secondary">
+                        stored
+                      </span>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {editingCustomKey === name ? (
@@ -605,7 +695,9 @@ export function DataSourcesPanel() {
               <label className="mb-4 block text-sm">
                 <span className="mb-1 block font-medium text-text-primary">
                   New value for{" "}
-                  <code className="font-mono-code text-[12px]">{editingCustomKey}</code>
+                  <code className="font-mono-code text-[12px]">
+                    {editingCustomKey}
+                  </code>
                 </span>
                 <input
                   type="password"
@@ -620,7 +712,8 @@ export function DataSourcesPanel() {
 
             {pendingRemoval.size > 0 ? (
               <p className="mb-3 text-xs text-text-secondary">
-                {pendingRemoval.size} key(s) marked for removal — Save keys to apply.
+                {pendingRemoval.size} key(s) marked for removal — Save keys to
+                apply.
               </p>
             ) : null}
 
@@ -631,7 +724,9 @@ export function DataSourcesPanel() {
                   className="grid gap-3 rounded-lg border border-dashed border-foreground/15 p-3 sm:grid-cols-2"
                 >
                   <label className="block text-sm">
-                    <span className="mb-1 block font-medium text-text-primary">Variable name</span>
+                    <span className="mb-1 block font-medium text-text-primary">
+                      Variable name
+                    </span>
                     <input
                       type="text"
                       autoComplete="off"
@@ -651,7 +746,9 @@ export function DataSourcesPanel() {
                     />
                   </label>
                   <label className="block text-sm">
-                    <span className="mb-1 block font-medium text-text-primary">Secret</span>
+                    <span className="mb-1 block font-medium text-text-primary">
+                      Secret
+                    </span>
                     <div className="mt-1 flex gap-2">
                       <input
                         type="password"
@@ -660,7 +757,9 @@ export function DataSourcesPanel() {
                         onChange={(e) =>
                           setNewCustomRows((rows) =>
                             rows.map((r) =>
-                              r.id === row.id ? { ...r, value: e.target.value } : r,
+                              r.id === row.id
+                                ? { ...r, value: e.target.value }
+                                : r,
                             ),
                           )
                         }
@@ -669,7 +768,9 @@ export function DataSourcesPanel() {
                       <button
                         type="button"
                         onClick={() =>
-                          setNewCustomRows((rows) => rows.filter((r) => r.id !== row.id))
+                          setNewCustomRows((rows) =>
+                            rows.filter((r) => r.id !== row.id),
+                          )
                         }
                         className="shrink-0 rounded-lg border border-foreground/15 px-2 py-2 text-text-secondary hover:text-risk"
                         aria-label="Remove row"
@@ -728,71 +829,135 @@ export function DataSourcesPanel() {
         ) : null}
       </DataSourcesAccordionSection>
 
-      <DataSourcesAccordionSection title="PostgreSQL" icon={Database} defaultOpen>
+      <DataSourcesAccordionSection
+        title="PostgreSQL"
+        icon={Database}
+        defaultOpen
+      >
         <p className="mb-4 text-sm font-light text-text-secondary">
           Local PostgreSQL is defined in the repo root{" "}
           <code className="font-mono-code text-[12px]">docker-compose.yml</code>{" "}
-          <code className="font-mono-code text-[12px]">postgres</code> service. Defaults are user{" "}
-          <code className="font-mono-code text-[12px]">librequant</code> and password{" "}
-          <code className="font-mono-code text-[12px]">librequant</code> (local dev only). Override{" "}
+          <code className="font-mono-code text-[12px]">postgres</code> service.
+          Defaults are user{" "}
+          <code className="font-mono-code text-[12px]">librequant</code> and
+          password{" "}
+          <code className="font-mono-code text-[12px]">librequant</code> (local
+          dev only). Override{" "}
           <code className="font-mono-code text-[12px]">POSTGRES_USER</code> /{" "}
-          <code className="font-mono-code text-[12px]">POSTGRES_PASSWORD</code> in repo-root{" "}
-          <code className="font-mono-code text-[12px]">.env</code> if needed (see{" "}
+          <code className="font-mono-code text-[12px]">POSTGRES_PASSWORD</code>{" "}
+          in repo-root <code className="font-mono-code text-[12px]">.env</code>{" "}
+          if needed (see{" "}
           <code className="font-mono-code text-[12px]">env.docker.example</code>
           ). Values are not shown in this UI.
         </p>
         <ul className="list-disc space-y-2 pl-5 text-sm text-text-secondary marker:text-alpha/80">
           <li>
             <strong className="font-medium text-text-primary">Database:</strong>{" "}
-            <code className="font-mono-code text-[12px]">librequant</code>. The bootstrap user is a{" "}
-            <strong className="font-medium text-text-primary">PostgreSQL superuser</strong> (full
-            admin) for local development.
+            <code className="font-mono-code text-[12px]">librequant</code>. The
+            bootstrap user is a{" "}
+            <strong className="font-medium text-text-primary">
+              PostgreSQL superuser
+            </strong>{" "}
+            (full admin) for local development.
           </li>
           <li>
-            <strong className="font-medium text-text-primary">SQL clients on this machine:</strong>{" "}
+            <strong className="font-medium text-text-primary">
+              SQL clients on this machine:
+            </strong>{" "}
             <code className="font-mono-code text-[12px]">127.0.0.1</code>, port{" "}
-            <code className="font-mono-code text-[12px]">5432</code> by default (set{" "}
-            <code className="font-mono-code text-[12px]">POSTGRES_HOST_PORT</code> in repo-root{" "}
-            <code className="font-mono-code text-[12px]">.env</code> if that port is already in use, e.g.{" "}
+            <code className="font-mono-code text-[12px]">5432</code> by default
+            (set{" "}
+            <code className="font-mono-code text-[12px]">
+              POSTGRES_HOST_PORT
+            </code>{" "}
+            in repo-root{" "}
+            <code className="font-mono-code text-[12px]">.env</code> if that
+            port is already in use, e.g.{" "}
             <code className="font-mono-code text-[12px]">5433</code>), database{" "}
-            <code className="font-mono-code text-[12px]">librequant</code>, user and password match
-            the Compose defaults or your repo-root <code className="font-mono-code text-[12px]">.env</code>{" "}
-            overrides. If you set a custom password, avoid URL characters{" "}
+            <code className="font-mono-code text-[12px]">librequant</code>, user
+            and password match the Compose defaults or your repo-root{" "}
+            <code className="font-mono-code text-[12px]">.env</code> overrides.
+            If you set a custom password, avoid URL characters{" "}
             <code className="font-mono-code text-[11px]">@ : / ? # %</code> in{" "}
-            <code className="font-mono-code text-[12px]">LIBREQUANT_DATABASE_URL</code> or encode it.
+            <code className="font-mono-code text-[12px]">
+              LIBREQUANT_DATABASE_URL
+            </code>{" "}
+            or encode it.
           </li>
           <li>
-            <strong className="font-medium text-text-primary">Default in notebooks (Docker):</strong>{" "}
-            Compose sets <code className="font-mono-code text-[12px]">{DEFAULT_DATABASE_URL_KEY}</code>{" "}
-            (host <code className="font-mono-code text-[12px]">postgres</code>). Do not set that name in{" "}
-            <code className="font-mono-code text-[12px]">.env.local</code> — it is reserved for this service.
-            Use <code className="font-mono-code text-[12px]">librequant.data.get_database_url()</code> or{" "}
-            <code className="font-mono-code text-[12px]">read_sql_frame()</code> for the default DB; use{" "}
-            <code className="font-mono-code text-[12px]">get_database_url(&quot;SLUG&quot;)</code> for additional
-            connections below.
+            <strong className="font-medium text-text-primary">
+              Default in notebooks (Docker):
+            </strong>{" "}
+            Compose sets{" "}
+            <code className="font-mono-code text-[12px]">
+              {DEFAULT_DATABASE_URL_KEY}
+            </code>{" "}
+            (host <code className="font-mono-code text-[12px]">postgres</code>).
+            Do not set that name in{" "}
+            <code className="font-mono-code text-[12px]">.env.local</code> — it
+            is reserved for this service. Use{" "}
+            <code className="font-mono-code text-[12px]">
+              librequant.data.get_database_url()
+            </code>{" "}
+            or{" "}
+            <code className="font-mono-code text-[12px]">read_sql_frame()</code>{" "}
+            for the default DB; use{" "}
+            <code className="font-mono-code text-[12px]">
+              get_database_url(&quot;SLUG&quot;)
+            </code>{" "}
+            for additional connections below.
           </li>
         </ul>
       </DataSourcesAccordionSection>
 
-      <DataSourcesAccordionSection title="Database connections" icon={Database} defaultOpen>
+      <DataSourcesAccordionSection
+        title="Database connections"
+        icon={Database}
+        defaultOpen
+      >
         <p className="mb-6 text-sm font-light text-text-secondary">
-          The default URL is <code className="font-mono-code text-[12px]">{DEFAULT_DATABASE_URL_KEY}</code> from Docker Compose (PostgreSQL). Add named connections here with any database URL you need (PostgreSQL, MySQL, SQLite, etc.); each becomes{" "}
-          <code className="font-mono-code text-[12px]">LIBREQUANT_DB_{"{NAME}"}_URL</code>, syncs to Jupyter, and is
-          loaded with <code className="font-mono-code text-[12px]">load_data_source_secrets()</code>. The{" "}
-          <code className="font-mono-code text-[12px]">read_sql_frame</code> helper is PostgreSQL-only; use{" "}
-          <code className="font-mono-code text-[12px]">get_database_url(&quot;SLUG&quot;)</code> with other drivers in code.
+          The default URL is{" "}
+          <code className="font-mono-code text-[12px]">
+            {DEFAULT_DATABASE_URL_KEY}
+          </code>{" "}
+          from Docker Compose (PostgreSQL). Add named connections here with any
+          database URL you need (PostgreSQL, MySQL, SQLite, etc.); each becomes{" "}
+          <code className="font-mono-code text-[12px]">
+            LIBREQUANT_DB_{"{NAME}"}_URL
+          </code>
+          , syncs to Jupyter, and is loaded with{" "}
+          <code className="font-mono-code text-[12px]">
+            load_data_source_secrets()
+          </code>
+          . The{" "}
+          <code className="font-mono-code text-[12px]">read_sql_frame</code>{" "}
+          helper is PostgreSQL-only; use{" "}
+          <code className="font-mono-code text-[12px]">
+            get_database_url(&quot;SLUG&quot;)
+          </code>{" "}
+          with other drivers in code.
         </p>
 
         <div className="mb-6 rounded-xl border border-foreground/8 p-4">
-          <h3 className="text-sm font-semibold text-text-primary">Default (Docker Postgres)</h3>
+          <h3 className="text-sm font-semibold text-text-primary">
+            Default (Docker Postgres)
+          </h3>
           <p className="mt-2 text-sm text-text-secondary">
-            <code className="font-mono-code text-[12px]">{DEFAULT_DATABASE_URL_KEY}</code> is injected by{" "}
-            <code className="font-mono-code text-[12px]">docker-compose.yml</code>. Not editable here.
+            <code className="font-mono-code text-[12px]">
+              {DEFAULT_DATABASE_URL_KEY}
+            </code>{" "}
+            is injected by{" "}
+            <code className="font-mono-code text-[12px]">
+              docker-compose.yml
+            </code>
+            . Not editable here.
           </p>
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-text-primary">Additional connections</h3>
+          <h3 className="text-sm font-semibold text-text-primary">
+            Additional connections
+          </h3>
           {userDatabaseUrlKeys.length > 0 ? (
             <ul className="space-y-3">
               {userDatabaseUrlKeys.map((envKey) => {
@@ -805,7 +970,9 @@ export function DataSourcesPanel() {
                   >
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                       <div className="min-w-0">
-                        <span className="text-sm font-semibold text-text-primary">{slug}</span>
+                        <span className="text-sm font-semibold text-text-primary">
+                          {slug}
+                        </span>
                         <p className="mt-0.5 font-mono-code text-[11px] text-text-secondary">
                           {envKey}
                         </p>
@@ -861,7 +1028,10 @@ export function DataSourcesPanel() {
                           >
                             {dbConnSaving ? (
                               <>
-                                <RefreshCw className="mr-2 size-4 animate-spin" aria-hidden />
+                                <RefreshCw
+                                  className="mr-2 size-4 animate-spin"
+                                  aria-hidden
+                                />
                                 Saving…
                               </>
                             ) : (
@@ -882,39 +1052,53 @@ export function DataSourcesPanel() {
                         </div>
                       </>
                     ) : (
-                      <p className="text-sm text-text-secondary">URL stored locally — use Edit to rotate.</p>
+                      <p className="text-sm text-text-secondary">
+                        URL stored locally — use Edit to rotate.
+                      </p>
                     )}
                   </li>
                 );
               })}
             </ul>
           ) : (
-            <p className="text-sm text-text-secondary">No additional connections yet.</p>
+            <p className="text-sm text-text-secondary">
+              No additional connections yet.
+            </p>
           )}
 
           <div className="rounded-xl border border-dashed border-foreground/15 p-4">
-            <h4 className="text-sm font-semibold text-text-primary">Add connection</h4>
+            <h4 className="text-sm font-semibold text-text-primary">
+              Add connection
+            </h4>
             <p className="mt-1 text-xs text-text-secondary">
               Choose a short name (letters, numbers, underscore). Example:{" "}
               <code className="font-mono-code text-[11px]">STAGING</code> →{" "}
-              <code className="font-mono-code text-[11px]">LIBREQUANT_DB_STAGING_URL</code>. Paste any standard
-              connection URL for your database product.
+              <code className="font-mono-code text-[11px]">
+                LIBREQUANT_DB_STAGING_URL
+              </code>
+              . Paste any standard connection URL for your database product.
             </p>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <label className="block text-sm">
-                <span className="mb-1 block font-medium text-text-primary">Connection name</span>
+                <span className="mb-1 block font-medium text-text-primary">
+                  Connection name
+                </span>
                 <input
                   type="text"
                   autoComplete="off"
                   spellCheck={false}
                   placeholder="STAGING"
                   value={newUserDbSlug}
-                  onChange={(e) => setNewUserDbSlug(e.target.value.toUpperCase())}
+                  onChange={(e) =>
+                    setNewUserDbSlug(e.target.value.toUpperCase())
+                  }
                   className="mt-1 w-full rounded-xl border border-foreground/10 bg-background/80 px-3 py-2 font-mono-code text-sm text-text-primary outline-none ring-alpha/30 placeholder:text-text-secondary/70 focus-visible:ring-2"
                 />
               </label>
               <label className="block text-sm sm:col-span-2">
-                <span className="mb-1 block font-medium text-text-primary">Connection string</span>
+                <span className="mb-1 block font-medium text-text-primary">
+                  Connection string
+                </span>
                 <textarea
                   autoComplete="off"
                   spellCheck={false}
@@ -944,7 +1128,11 @@ export function DataSourcesPanel() {
         ) : null}
       </DataSourcesAccordionSection>
 
-      <DataSourcesAccordionSection title="Data library" icon={Upload} defaultOpen>
+      <DataSourcesAccordionSection
+        title="Data library"
+        icon={Upload}
+        defaultOpen
+      >
         <DataLibraryManager />
       </DataSourcesAccordionSection>
     </div>

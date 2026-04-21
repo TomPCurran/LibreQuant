@@ -33,7 +33,18 @@
     <title>LibreQuant | Local-first algorithmic research</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      tailwind.config = { darkMode: "class" };
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                teal: "#0d9488",
+              },
+            },
+          },
+        },
+      };
     </script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
@@ -388,7 +399,7 @@
         <div class="flex flex-wrap justify-center gap-3">
           <a
             href="#quick-start"
-            class="inline-flex items-center justify-center bg-alpha text-white px-6 py-2.5 rounded-full font-medium text-sm hover:opacity-90 transition shadow-md shadow-[#0d9488]/20"
+            class="inline-flex items-center justify-center bg-alpha text-white px-6 py-2.5 rounded-full font-medium text-sm hover:opacity-90 transition shadow-md shadow-brand-teal/20"
             >Get started (Docker)</a
           >
           <a

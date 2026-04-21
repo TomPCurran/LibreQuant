@@ -1266,7 +1266,7 @@ export function DataLibraryManager() {
 
       {renameState ? (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+          className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 p-4"
           role="presentation"
           onMouseDown={(ev) => {
             if (ev.target === ev.currentTarget) setRenameState(null);
@@ -1315,7 +1315,7 @@ export function DataLibraryManager() {
 
       {moveState ? (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+          className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 p-4"
           role="presentation"
           onMouseDown={(ev) => {
             if (ev.target === ev.currentTarget) setMoveState(null);
@@ -1385,7 +1385,7 @@ export function DataLibraryManager() {
 
       {deleteState ? (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+          className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 p-4"
           role="presentation"
           onMouseDown={(ev) => {
             if (ev.target === ev.currentTarget) setDeleteState(null);
