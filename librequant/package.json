@@ -12,7 +12,9 @@
     "start": "next start",
     "prod": "npm run build && npm run start",
     "prod:stack": "node scripts/prod-stack.mjs",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.1",
@@ -41,7 +43,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   },
   "overrides": {
     "http-proxy-agent": "7.0.2"

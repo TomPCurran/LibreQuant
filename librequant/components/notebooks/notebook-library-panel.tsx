@@ -37,6 +37,7 @@ import type { NotebookFolderItem, NotebookListItem } from "@/lib/types/notebook"
 import { initialNotebook } from "@/lib/initial-notebook";
 import { isNotebookContent } from "@/lib/notebook-local-storage";
 import { notebookStemFromPath } from "@/lib/jupyter-paths";
+import { ONBOARDING_NOTEBOOKS } from "@/lib/notebook-onboarding";
 import { formatDateTime } from "@/lib/format-date-time";
 import { useJupyterServiceManager } from "@/lib/use-jupyter-service-manager";
 
@@ -590,7 +591,18 @@ export function NotebookLibraryPanel() {
           <code className="font-mono-code text-[12px] text-text-primary">
             {libraryRoot}
           </code>{" "}
-          on your Jupyter server (persisted when using Docker compose).
+          on your Jupyter server (persisted when using Docker compose). With Compose,           demo
+          notebooks from the repository —{" "}
+          {ONBOARDING_NOTEBOOKS.map((name, i) => (
+            <span key={name}>
+              {i > 0 ? " and " : null}
+              <code className="font-mono-code text-[12px]">{name}</code>
+            </span>
+          ))}{" "}
+          — are
+          copied into this folder on Jupyter container start when those files are not already
+          present (restart the <code className="font-mono-code text-[12px]">jupyter</code>{" "}
+          service to pick them up).
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <button

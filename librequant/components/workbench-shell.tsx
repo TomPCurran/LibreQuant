@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SidebarExperiments } from "@/components/sidebar-experiments";
 import { SidebarNotebookTree } from "@/components/sidebar-notebook-tree";
 import { SidebarStrategyTree } from "@/components/sidebar-strategy-tree";
 import { useWorkbenchStore } from "@/lib/stores/workbench-store";
@@ -99,6 +100,8 @@ export function WorkbenchShell({
             <Suspense fallback={null}>
               <SidebarNotebookTree />
             </Suspense>
+
+            <SidebarExperiments />
 
             <Suspense fallback={null}>
               <SidebarStrategyTree />
