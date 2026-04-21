@@ -25,6 +25,7 @@ Loading screens spell out which phase is active (connecting to the server vs sta
 | [`app/strategies/edit/page.tsx`](app/strategies/edit/page.tsx) | Strategy editor (files under the strategies tree via Contents API).                                                                                         |
 | [`app/data-sources/page.tsx`](app/data-sources/page.tsx)       | Data sources: API keys (`.env.local`), uploads, and links to OHLCV cache docs.                                                                              |
 | [`app/experiments/page.tsx`](app/experiments/page.tsx)         | MLflow experiments: browse runs; selection is shareable via `?experiment=` (see [`.env.example`](.env.example) for `NEXT_PUBLIC_MLFLOW_UI_URL` vs Compose). |
+| [`app/documentation/page.tsx`](app/documentation/page.tsx)     | In-app documentation (notebooks, data sources, strategies, workspace).                                                                                        |
 
 Layouts and global UI: [`app/layout.tsx`](app/layout.tsx) (fonts, theme, skip link); client providers in [`components/providers.tsx`](components/providers.tsx) (`JupyterReachabilityStack`).
 
@@ -75,14 +76,25 @@ From the **repository root** (parent of `librequant/`):
 docker compose up
 ```
 
-This starts `quay.io/jupyter/scipy-notebook` with:
+This starts the full Compose stack defined in [`docker-compose.yml`](../docker-compose.yml):
 
-- **`librequant` Python package** installed from `./packages/librequant` (mounted at `/opt/librequant`) so `import librequant.data` works in notebooks. Each container start runs `pip install` for that path (adds a short delay and uses the network for dependency resolution unless wheels are cached). To speed up cold starts or avoid repeated downloads, use a custom image with the package pre-installed or keep dependencies stable in [`pyproject.toml`](../packages/librequant/pyproject.toml).
-- **`PYTHONPATH`** including `/home/jovyan/work/librequant/strategies` so notebook kernels see strategy packages without per-load `executeCode` (keep in sync with `NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT` / `NEXT_PUBLIC_JUPYTER_USER_HOME` if you change them). The container entry ensures that directory exists before Jupyter starts.
+| Service | Role |
+| ------- | ---- |
+| **`postgres`** | PostgreSQL 17; database `librequant` for app data, plus logical database `mlflow` for MLflow’s backend store (see [`docker/postgres/`](../docker/postgres/)). |
+| **`mlflow-db-init`** | One-shot job: ensures the `mlflow` database exists when reusing an older volume (init scripts only run on first cluster init). |
+| **`mlflow`** | MLflow tracking server (API + UI) on **127.0.0.1:5000**; artifacts under a Docker volume; version pinned to match the Python client in [`pyproject.toml`](../packages/librequant/pyproject.toml). |
+| **`jupyter`** | Custom image **`librequant-jupyter:local`** built from [`docker/jupyter/Dockerfile`](../docker/jupyter/Dockerfile) (based on `quay.io/jupyter/scipy-notebook`, with `packages/librequant` dependency pins pre-installed in the image). The running container bind-mounts `./packages/librequant` at `/opt/librequant` and on each start runs `pip install '/opt/librequant[postgres,mlflow]'` so local edits to the package are picked up quickly. |
+
+**Jupyter container behavior:**
+
+- **`librequant` Python package** — mount at `/opt/librequant` plus editable install on start so `import librequant.data` works in notebooks. Heavy dependencies are pre-baked in the image; the start-time `pip install` is meant to stay fast when wheels match [`pyproject.toml`](../packages/librequant/pyproject.toml).
+- **`PYTHONPATH`** includes `/home/jovyan/work/librequant/strategies` so notebook kernels see strategy packages without per-load `executeCode` (keep in sync with `NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT` / `NEXT_PUBLIC_JUPYTER_USER_HOME` if you change them). The Compose command ensures that directory exists before Jupyter starts.
 - Port **8888** bound to **127.0.0.1** on the host (not advertised on the LAN from Docker’s port mapping).
 - Token **`devtoken`** (`NEXT_PUBLIC_JUPYTER_TOKEN` must match). **Treat the token like a password** — it is bundled into the client and grants full access to the Jupyter server and its mounted files.
 - CORS for the Next dev origins and **`Access-Control-Allow-Credentials`** (required because `@jupyterlab/services` uses credentialed fetch).
 - **XSRF checks disabled** on Jupyter (`ServerApp.disable_check_xsrf`) because the app (`http://localhost:3000`) and Jupyter (`http://localhost:8888`) are different origins; the token and restricted CORS still apply. Acceptable for local dev; **do not expose port 8888 to untrusted networks** (see [SECURITY.md](SECURITY.md)).
+
+`npm run dev:stack` runs **`docker compose up -d`** for this full stack, then waits only for Jupyter (port **8888** + HTTP API) before starting Next.js — Postgres and MLflow come up as dependencies of the Jupyter service.
 
 If the app shows “Connecting to Jupyter…” forever, confirm `NEXT_PUBLIC_JUPYTER_TOKEN` matches the container (`devtoken` by default) and restart the app after changing env. An empty token is rejected by Jupyter (403 on `/api/*`).
 
@@ -158,7 +170,7 @@ Open [http://localhost:3000](http://localhost:3000). The notebook connects to `N
 | `npm run lint`          | ESLint (Next flat config)                                                                                                                      |
 | `make prod`             | From **repository root**: `npm ci` + `npm run prod:stack` — Docker Jupyter, production `next build`, `next start` (one command; Ctrl+C stops). |
 | `make librequant-build` | From **repository root**: `npm ci` + production `next build` in `librequant/` only.                                                            |
-| `make compose-up`       | From **repository root**: `docker compose pull` + `up -d` (Jupyter from root `docker-compose.yml`).                                            |
+| `make compose-up`       | From **repository root**: `docker compose pull` + `up -d` (full stack: Postgres, MLflow, Jupyter).                                            |
 | `make prod-build`       | `librequant-build` + `compose-up` only (no Next server); then `cd librequant && npm start` yourself.                                           |
 
 ## Security notes
@@ -172,9 +184,10 @@ Full detail: **[SECURITY.md](SECURITY.md)** (trusted machine / trusted browser, 
 
 ## Stack
 
-- Next.js 16.2 (App Router), React 19.2, TypeScript 5
+- Next.js 16.2.x (App Router), React 19.2, TypeScript 5
 - Tailwind CSS v4, `next-themes`, Zustand, Lucide
 - Jupyter: `@datalayer/jupyter-react`, `@jupyterlab/services`
+- Tests: Vitest (`npm run test`)
 
 ## Source layout & architecture
 
@@ -182,14 +195,14 @@ Full detail: **[SECURITY.md](SECURITY.md)** (trusted machine / trusted browser, 
 
 | Path                                               | Role                                                                                                                                                                                                                                               |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`app/`](app/)                                     | App Router pages, `layout.tsx`, `loading.tsx`, `error.tsx`; API routes: [`api/pypi/search`](app/api/pypi/search/), [`api/data-sources/credentials`](app/api/data-sources/credentials/), [`api/data-sources/status`](app/api/data-sources/status/). |
+| [`app/`](app/)                                     | App Router pages, `layout.tsx`, `loading.tsx`, `error.tsx`; API routes under [`app/api/`](app/api/): PyPI search, data-sources credentials/status, MLflow experiments/runs/artifacts (server-side proxy to the tracking server). |
 | [`components/`](components/)                       | Feature UI: [`workbench-shell`](components/workbench-shell.tsx), notebook ([`jupyter-workbench`](components/notebook/jupyter-workbench.tsx), toolbar, cells), strategies editor, sidebars, package search.                                         |
 | [`lib/`](lib/)                                     | Shared logic: Jupyter integration, env, paths, hooks, stores, lifecycle events.                                                                                                                                                                    |
 | [`public/jupyter/`](public/jupyter/)               | Copied JupyterLab theme CSS (`predev` / `prebuild`); required for editor theming with Turbopack.                                                                                                                                                   |
 | [`scripts/ensure-env.mjs`](scripts/ensure-env.mjs) | `predev` / `prebuild`: `.env.local` from `.env.example` when missing.                                                                                                                                                                              |
 | [`scripts/dev-stack.mjs`](scripts/dev-stack.mjs)   | `npm run dev:stack`: Docker up, TCP + HTTP readiness, then `npm run dev`.                                                                                                                                                                          |
 | [`scripts/prod-stack.mjs`](scripts/prod-stack.mjs) | `npm run prod:stack`: same, then `npm run build` + `npm run start`.                                                                                                                                                                                |
-| [`docker-compose.yml`](../docker-compose.yml)      | At repository root: local Jupyter image, `PYTHONPATH`, port **127.0.0.1:8888** only.                                                                                                                                                               |
+| [`docker-compose.yml`](../docker-compose.yml)      | At repository root: Postgres, MLflow, custom Jupyter image, workspace bind mount, loopback ports **5432** / **5000** / **8888** (see [`env.docker.example`](../env.docker.example)).                                                              |
 | [`instrumentation.ts`](instrumentation.ts)         | Next.js instrumentation (dev-only noise handling for server sockets).                                                                                                                                                                              |
 
 ### Jupyter integration (high level)
@@ -213,3 +226,5 @@ Strategy files on disk are managed with [`lib/strategy-contents.ts`](lib/strateg
 | ------------------------------ | ------------------------------------------------------------ |
 | [SECURITY.md](SECURITY.md)     | Jupyter token, CORS, localhost vs 127.0.0.1, CSP notes.      |
 | [`.env.example`](.env.example) | Every `NEXT_PUBLIC_*` and Docker token with inline comments. |
+| [`packages/librequant/README.md`](../packages/librequant/README.md) | Python package: `get_bars`, optional extras, data cache.     |
+| [`env.docker.example`](../env.docker.example) | Repo-root `.env` for Compose: workspace path, Postgres port, MLflow notes. |

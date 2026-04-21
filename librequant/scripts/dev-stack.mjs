@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * One-shot local stack: Docker Jupyter + Next.js dev server.
+ * One-shot local stack: Docker Compose (Postgres, MLflow, Jupyter) + Next.js dev server.
  *
  * Usage:
  *   npm run dev:stack
@@ -36,7 +36,7 @@ function main() {
   runEnsureEnv(__dirname, librequantRoot, { warnIfMissingEnvLocal: true });
 
   if (!noDocker) {
-    console.log("[librequant] Starting Jupyter: docker compose up -d");
+    console.log("[librequant] Starting Docker Compose stack: docker compose up -d");
     try {
       execSync("docker compose up -d", { cwd: repoRoot, stdio: "inherit" });
     } catch {
@@ -81,7 +81,7 @@ function startNext(keepJupyter, noDocker) {
   function tearDownJupyter() {
     if (tornDown || noDocker || keepJupyter) return;
     tornDown = true;
-    console.log("\n[librequant] Stopping Jupyter: docker compose down");
+    console.log("\n[librequant] Stopping Compose stack: docker compose down");
     try {
       execSync("docker compose down", { cwd: repoRoot, stdio: "inherit" });
     } catch {

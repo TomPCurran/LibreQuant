@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Docker Jupyter + production Next (`npm run build` + `npm run start`).
+ * Docker Compose (Postgres, MLflow, Jupyter) + production Next (`npm run build` + `npm run start`).
  *
  * Usage:
  *   npm run prod:stack
@@ -52,7 +52,7 @@ function runBuildThenStart(keepJupyter, noDocker) {
   function tearDownJupyter() {
     if (tornDown || noDocker || keepJupyter) return;
     tornDown = true;
-    console.log("\n[librequant] Stopping Jupyter: docker compose down");
+    console.log("\n[librequant] Stopping Compose stack: docker compose down");
     try {
       execSync("docker compose down", { cwd: repoRoot, stdio: "inherit" });
     } catch {
