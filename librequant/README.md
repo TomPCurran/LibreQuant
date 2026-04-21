@@ -17,14 +17,14 @@ Loading screens spell out which phase is active (connecting to the server vs sta
 
 ## Application routes
 
-| Route | Purpose |
-| ----- | ------- |
-| [`app/page.tsx`](app/page.tsx) | Home / notebook workbench (`HomeWorkspace`). Opens notebooks via `?path=` query. |
-| [`app/notebooks/page.tsx`](app/notebooks/page.tsx) | Notebook library: list and open `.ipynb` files under the Jupyter contents root. |
-| [`app/strategies/page.tsx`](app/strategies/page.tsx) | Strategy library browser. |
-| [`app/strategies/edit/page.tsx`](app/strategies/edit/page.tsx) | Strategy editor (files under the strategies tree via Contents API). |
-| [`app/data-sources/page.tsx`](app/data-sources/page.tsx) | Data sources: API keys (`.env.local`), uploads, and links to OHLCV cache docs. |
-| [`app/experiments/page.tsx`](app/experiments/page.tsx) | MLflow experiments: browse runs; selection is shareable via `?experiment=` (see [`.env.example`](.env.example) for `NEXT_PUBLIC_MLFLOW_UI_URL` vs Compose). |
+| Route                                                          | Purpose                                                                                                                                                     |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`app/page.tsx`](app/page.tsx)                                 | Home / notebook workbench (`HomeWorkspace`). Opens notebooks via `?path=` query.                                                                            |
+| [`app/notebooks/page.tsx`](app/notebooks/page.tsx)             | Notebook library: list and open `.ipynb` files under the Jupyter contents root.                                                                             |
+| [`app/strategies/page.tsx`](app/strategies/page.tsx)           | Strategy library browser.                                                                                                                                   |
+| [`app/strategies/edit/page.tsx`](app/strategies/edit/page.tsx) | Strategy editor (files under the strategies tree via Contents API).                                                                                         |
+| [`app/data-sources/page.tsx`](app/data-sources/page.tsx)       | Data sources: API keys (`.env.local`), uploads, and links to OHLCV cache docs.                                                                              |
+| [`app/experiments/page.tsx`](app/experiments/page.tsx)         | MLflow experiments: browse runs; selection is shareable via `?experiment=` (see [`.env.example`](.env.example) for `NEXT_PUBLIC_MLFLOW_UI_URL` vs Compose). |
 
 Layouts and global UI: [`app/layout.tsx`](app/layout.tsx) (fonts, theme, skip link); client providers in [`components/providers.tsx`](components/providers.tsx) (`JupyterReachabilityStack`).
 
@@ -37,17 +37,17 @@ Layouts and global UI: [`app/layout.tsx`](app/layout.tsx) (fonts, theme, skip li
 
 Copy [`.env.example`](.env.example) to `.env.local` and adjust (or rely on `predev` / `prebuild`, which create `.env.local` from `.env.example` when it is missing). Variables are documented inline in `.env.example`; the important ones:
 
-| Variable                            | Purpose                                                                                                                                                                                                                                                                                                         |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_JUPYTER_BASE_URL`      | Jupyter Server HTTP origin (no trailing slash), e.g. `http://127.0.0.1:8888`. Prefer **127.0.0.1** with Docker’s default port map (`127.0.0.1:8888`); `localhost` can resolve to IPv6 first on macOS and fail while the server listens on IPv4 only. The app normalizes `localhost` → `127.0.0.1` for this URL. |
-| `NEXT_PUBLIC_JUPYTER_TOKEN`         | Login token for Jupyter; must match the server (e.g. Docker `JUPYTER_TOKEN`). **Treat as a password** — it is exposed to the browser.                                                                                                                                                                           |
-| `NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT` | Contents path for the notebook library relative to Jupyter root (default `work/librequant`).                                                                                                                                                                                                                    |
+| Variable                                | Purpose                                                                                                                                                                                                                                                                                                                                                                                                              |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_JUPYTER_BASE_URL`          | Jupyter Server HTTP origin (no trailing slash), e.g. `http://127.0.0.1:8888`. Prefer **127.0.0.1** with Docker’s default port map (`127.0.0.1:8888`); `localhost` can resolve to IPv6 first on macOS and fail while the server listens on IPv4 only. The app normalizes `localhost` → `127.0.0.1` for this URL.                                                                                                      |
+| `NEXT_PUBLIC_JUPYTER_TOKEN`             | Login token for Jupyter; must match the server (e.g. Docker `JUPYTER_TOKEN`). **Treat as a password** — it is exposed to the browser.                                                                                                                                                                                                                                                                                |
+| `NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT`     | Contents path for the notebook library relative to Jupyter root (default `work/librequant`).                                                                                                                                                                                                                                                                                                                         |
 | `NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH` | Default assumes Docker’s `PYTHONPATH` (Compose stack). Set to `0` only to force browser `sys.path` injection (e.g. Jupyter without matching `PYTHONPATH`). If you change `NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT` or `NEXT_PUBLIC_JUPYTER_USER_HOME`, update the `PYTHONPATH` line in the repository root `docker-compose.yml` so it matches `getJupyterUserHomeAbsolute()` + `getStrategyLibraryRoot()` in `lib/env.ts`. |
-| `NEXT_PUBLIC_JUPYTER_USER_HOME`     | Absolute Linux home inside the container for kernel snippets that join paths (default `/home/jovyan`).                                                                                                                                                                                                          |
-| `NEXT_PUBLIC_MLFLOW_UI_URL`        | HTTP origin for the embedded MLflow UI iframe and CSP `frame-src` (default `http://127.0.0.1:5000`). Must match the MLflow service port published in the repository root `docker-compose.yml`. Documented with operator notes in [`.env.example`](.env.example). |
-| `NEXT_PUBLIC_JUPYTER_VERBOSE`       | Set to `1` to disable dev log filtering in `lib/jupyter-dev-noise.ts`.                                                                                                                                                                                                                                          |
-| `ALPACA_API_KEY` / `ALPACA_SECRET_KEY` | Server-only and Jupyter: Alpaca Market Data (see [`packages/librequant`](../packages/librequant)). Set in `.env.local`; never commit. |
-| `POLYGON_API_KEY` / `TIINGO_API_KEY` | Reserved for future connectors; same rules as above. |
+| `NEXT_PUBLIC_JUPYTER_USER_HOME`         | Absolute Linux home inside the container for kernel snippets that join paths (default `/home/jovyan`).                                                                                                                                                                                                                                                                                                               |
+| `NEXT_PUBLIC_MLFLOW_UI_URL`             | HTTP origin for the embedded MLflow UI iframe and CSP `frame-src` (default `http://127.0.0.1:5000`). Must match the MLflow service port published in the repository root `docker-compose.yml`. Documented with operator notes in [`.env.example`](.env.example).                                                                                                                                                     |
+| `NEXT_PUBLIC_JUPYTER_VERBOSE`           | Set to `1` to disable dev log filtering in `lib/jupyter-dev-noise.ts`.                                                                                                                                                                                                                                                                                                                                               |
+| `ALPACA_API_KEY` / `ALPACA_SECRET_KEY`  | Server-only and Jupyter: Alpaca Market Data (see [`packages/librequant`](../packages/librequant)). Set in `.env.local`; never commit.                                                                                                                                                                                                                                                                                |
+| `POLYGON_API_KEY` / `TIINGO_API_KEY`    | Reserved for future connectors; same rules as above.                                                                                                                                                                                                                                                                                                                                                                 |
 
 Runtime resolution and validation live in [`lib/env.ts`](lib/env.ts) (JSDoc on each export).
 
@@ -90,9 +90,9 @@ If the app shows “Connecting to Jupyter…” forever, confirm `NEXT_PUBLIC_JU
 - **Host folder (default):** [`docker-compose.yml`](../docker-compose.yml) bind-mounts a directory on your machine onto **`/home/jovyan/work/librequant`** inside the container. That is the whole LibreQuant workspace: notebooks, `data/uploads/`, `config/credentials.env`, and `strategies/`. By default the repo uses **`./jupyter-workspace`** next to `docker-compose.yml` (gitignored).
 - **Choose your own path (e.g. Desktop):** Create a **repo-root** `.env` file (not `librequant/.env.local`) and set:
   - `LIBREQUANT_JUPYTER_WORKSPACE_HOST=/Users/you/Desktop/notebooks`  
-  Use an absolute path on macOS so Finder shows your files exactly there. Restart Jupyter (`docker compose up -d` or `npm run dev:stack`) after changing it.
+    Use an absolute path on macOS so Finder shows your files exactly there. Restart Jupyter (`docker compose up -d` or `npm run dev:stack`) after changing it.
 - See [`env.docker.example`](../env.docker.example) for the variable name and examples. Docker Compose reads `.env` from the **repository root** for this substitution only.
-- **`NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT`** (see [`.env.example`](.env.example)) stays **`work/librequant`** unless you change the app’s path model; it must match the path Jupyter uses inside the container. With the bind mount above, that maps to files at `{LIBREQUANT_JUPYTER_WORKSPACE_HOST}/*.ipynb` on the host (not nested under an extra `librequant` folder on disk—the mount target *is* the `librequant` workspace).
+- **`NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT`** (see [`.env.example`](.env.example)) stays **`work/librequant`** unless you change the app’s path model; it must match the path Jupyter uses inside the container. With the bind mount above, that maps to files at `{LIBREQUANT_JUPYTER_WORKSPACE_HOST}/*.ipynb` on the host (not nested under an extra `librequant` folder on disk—the mount target _is_ the `librequant` workspace).
 - **Migrating from the old named volume:** If you previously used Docker volume `jupyter-librequant-work`, copy data out before switching (e.g. run a one-off container with that volume mounted and `cp` to your new host folder), then apply the new `.env` and `docker compose up -d`.
 
 ## One command: Jupyter + Next dev
@@ -146,19 +146,19 @@ Open [http://localhost:3000](http://localhost:3000). The notebook connects to `N
 
 ## Scripts
 
-| Command             | Description                                     |
-| ------------------- | ----------------------------------------------- |
-| `npm run dev:stack` | Docker Jupyter + Next dev (recommended locally) |
-| `npm run dev`       | Development server                              |
-| `npm run build`     | Production build (`prebuild` ensures `.env.local` + theme CSS) |
-| `npm run start`     | Start production server                         |
-| `npm run prod`      | `npm run build && npm run start`                |
-| `npm run prod:stack` | Docker Jupyter + `build` + `start` (production parity with `dev:stack`) |
-| `npm run lint`      | ESLint (Next flat config)                       |
-| `make prod`         | From **repository root**: `npm ci` + `npm run prod:stack` — Docker Jupyter, production `next build`, `next start` (one command; Ctrl+C stops). |
-| `make librequant-build` | From **repository root**: `npm ci` + production `next build` in `librequant/` only. |
-| `make compose-up`   | From **repository root**: `docker compose pull` + `up -d` (Jupyter from root `docker-compose.yml`). |
-| `make prod-build`   | `librequant-build` + `compose-up` only (no Next server); then `cd librequant && npm start` yourself. |
+| Command                 | Description                                                                                                                                    |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev:stack`     | Docker Jupyter + Next dev (recommended locally)                                                                                                |
+| `npm run dev`           | Development server                                                                                                                             |
+| `npm run build`         | Production build (`prebuild` ensures `.env.local` + theme CSS)                                                                                 |
+| `npm run start`         | Start production server                                                                                                                        |
+| `npm run prod`          | `npm run build && npm run start`                                                                                                               |
+| `npm run prod:stack`    | Docker Jupyter + `build` + `start` (production parity with `dev:stack`)                                                                        |
+| `npm run lint`          | ESLint (Next flat config)                                                                                                                      |
+| `make prod`             | From **repository root**: `npm ci` + `npm run prod:stack` — Docker Jupyter, production `next build`, `next start` (one command; Ctrl+C stops). |
+| `make librequant-build` | From **repository root**: `npm ci` + production `next build` in `librequant/` only.                                                            |
+| `make compose-up`       | From **repository root**: `docker compose pull` + `up -d` (Jupyter from root `docker-compose.yml`).                                            |
+| `make prod-build`       | `librequant-build` + `compose-up` only (no Next server); then `cd librequant && npm start` yourself.                                           |
 
 ## Security notes
 
@@ -179,17 +179,17 @@ Full detail: **[SECURITY.md](SECURITY.md)** (trusted machine / trusted browser, 
 
 ### Directory map
 
-| Path | Role |
-| ---- | ---- |
-| [`app/`](app/) | App Router pages, `layout.tsx`, `loading.tsx`, `error.tsx`; API routes: [`api/pypi/search`](app/api/pypi/search/), [`api/data-sources/credentials`](app/api/data-sources/credentials/), [`api/data-sources/status`](app/api/data-sources/status/). |
-| [`components/`](components/) | Feature UI: [`workbench-shell`](components/workbench-shell.tsx), notebook ([`jupyter-workbench`](components/notebook/jupyter-workbench.tsx), toolbar, cells), strategies editor, sidebars, package search. |
-| [`lib/`](lib/) | Shared logic: Jupyter integration, env, paths, hooks, stores, lifecycle events. |
-| [`public/jupyter/`](public/jupyter/) | Copied JupyterLab theme CSS (`predev` / `prebuild`); required for editor theming with Turbopack. |
-| [`scripts/ensure-env.mjs`](scripts/ensure-env.mjs) | `predev` / `prebuild`: `.env.local` from `.env.example` when missing. |
-| [`scripts/dev-stack.mjs`](scripts/dev-stack.mjs) | `npm run dev:stack`: Docker up, TCP + HTTP readiness, then `npm run dev`. |
-| [`scripts/prod-stack.mjs`](scripts/prod-stack.mjs) | `npm run prod:stack`: same, then `npm run build` + `npm run start`. |
-| [`docker-compose.yml`](../docker-compose.yml) | At repository root: local Jupyter image, `PYTHONPATH`, port **127.0.0.1:8888** only. |
-| [`instrumentation.ts`](instrumentation.ts) | Next.js instrumentation (dev-only noise handling for server sockets). |
+| Path                                               | Role                                                                                                                                                                                                                                               |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`app/`](app/)                                     | App Router pages, `layout.tsx`, `loading.tsx`, `error.tsx`; API routes: [`api/pypi/search`](app/api/pypi/search/), [`api/data-sources/credentials`](app/api/data-sources/credentials/), [`api/data-sources/status`](app/api/data-sources/status/). |
+| [`components/`](components/)                       | Feature UI: [`workbench-shell`](components/workbench-shell.tsx), notebook ([`jupyter-workbench`](components/notebook/jupyter-workbench.tsx), toolbar, cells), strategies editor, sidebars, package search.                                         |
+| [`lib/`](lib/)                                     | Shared logic: Jupyter integration, env, paths, hooks, stores, lifecycle events.                                                                                                                                                                    |
+| [`public/jupyter/`](public/jupyter/)               | Copied JupyterLab theme CSS (`predev` / `prebuild`); required for editor theming with Turbopack.                                                                                                                                                   |
+| [`scripts/ensure-env.mjs`](scripts/ensure-env.mjs) | `predev` / `prebuild`: `.env.local` from `.env.example` when missing.                                                                                                                                                                              |
+| [`scripts/dev-stack.mjs`](scripts/dev-stack.mjs)   | `npm run dev:stack`: Docker up, TCP + HTTP readiness, then `npm run dev`.                                                                                                                                                                          |
+| [`scripts/prod-stack.mjs`](scripts/prod-stack.mjs) | `npm run prod:stack`: same, then `npm run build` + `npm run start`.                                                                                                                                                                                |
+| [`docker-compose.yml`](../docker-compose.yml)      | At repository root: local Jupyter image, `PYTHONPATH`, port **127.0.0.1:8888** only.                                                                                                                                                               |
+| [`instrumentation.ts`](instrumentation.ts)         | Next.js instrumentation (dev-only noise handling for server sockets).                                                                                                                                                                              |
 
 ### Jupyter integration (high level)
 
@@ -208,7 +208,7 @@ Strategy files on disk are managed with [`lib/strategy-contents.ts`](lib/strateg
 
 ### Related docs
 
-| Document | Contents |
-| -------- | -------- |
-| [SECURITY.md](SECURITY.md) | Jupyter token, CORS, localhost vs 127.0.0.1, CSP notes. |
+| Document                       | Contents                                                     |
+| ------------------------------ | ------------------------------------------------------------ |
+| [SECURITY.md](SECURITY.md)     | Jupyter token, CORS, localhost vs 127.0.0.1, CSP notes.      |
 | [`.env.example`](.env.example) | Every `NEXT_PUBLIC_*` and Docker token with inline comments. |

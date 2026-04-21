@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { formatMlflowApiError } from "@/lib/mlflow-client-error";
 import type { MlflowExperimentSummary } from "@/lib/types/mlflow";
 
 type CacheState = {
@@ -9,34 +10,137 @@ type CacheState = {
   error: string | null;
 };
 
-let inflight: Promise<CacheState> | null = null;
-let cached: CacheState | null = null;
+/** Poll while at least one component needs the list (sidebar + explorer may both mount). */
+const POLL_INTERVAL_MS = 12_000;
+
+/**
+ * Module-level cache for the experiments list (shared across hook subscribers).
+ * Fast Refresh can remount components while leaving store / hasCompletedInitialFetch stale; rare in dev.
+ */
+let store: {
+  experiments: MlflowExperimentSummary[];
+  listError: string | null;
+  loadingExperiments: boolean;
+} = {
+  experiments: [],
+  listError: null,
+  loadingExperiments: true,
+};
+
+let hasCompletedInitialFetch = false;
+let inflight: Promise<void> | null = null;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+let visibilityHooked = false;
+const listeners = new Set<() => void>();
+
+function notify() {
+  for (const l of listeners) l();
+}
+
+function stopPollInterval() {
+  if (pollTimer !== null) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+function ensurePollInterval() {
+  if (pollTimer !== null) return;
+  if (listeners.size === 0) return;
+  if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+    return;
+  }
+  pollTimer = setInterval(() => {
+    void refreshExperimentsList();
+  }, POLL_INTERVAL_MS);
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0) {
+      stopPollInterval();
+      if (visibilityHooked) {
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+        visibilityHooked = false;
+      }
+    }
+  };
+}
+
+function onVisibilityChange() {
+  if (document.visibilityState === "hidden") {
+    stopPollInterval();
+    return;
+  }
+  void refreshExperimentsList();
+  ensurePollInterval();
+}
+
+function ensurePollingStarted() {
+  if (!visibilityHooked) {
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    visibilityHooked = true;
+  }
+  ensurePollInterval();
+}
 
 async function fetchExperimentsList(): Promise<CacheState> {
   const res = await fetch("/api/mlflow/experiments");
-  const data = (await res.json()) as {
-    experiments?: MlflowExperimentSummary[];
-    error?: string;
-  };
+  let data: unknown;
+  try {
+    data = await res.json();
+  } catch {
+    return {
+      experiments: [],
+      error: "Could not load experiments",
+    };
+  }
   if (!res.ok) {
     return {
       experiments: [],
-      error: data.error ?? "Could not load experiments",
+      error: formatMlflowApiError(data, "Could not load experiments"),
     };
   }
-  return { experiments: data.experiments ?? [], error: null };
+  const parsed = data as { experiments?: MlflowExperimentSummary[] };
+  return { experiments: parsed.experiments ?? [], error: null };
 }
 
-/** Deduplicates concurrent and subsequent in-session reads (sidebar + explorer on `/experiments`). */
-export function getMlflowExperimentsListCached(): Promise<CacheState> {
-  if (cached) return Promise.resolve(cached);
+/**
+ * Refreshes from MLflow. Concurrent callers share one in-flight request.
+ * After the first load, updates are silent (no loading spinner) so new experiments
+ * appear without flashing the UI.
+ */
+export async function refreshExperimentsList(): Promise<void> {
   if (inflight) return inflight;
-  inflight = fetchExperimentsList().then((r) => {
-    cached = r;
+
+  inflight = (async () => {
+    const isFirstLoad = !hasCompletedInitialFetch;
+    if (isFirstLoad) {
+      store = { ...store, loadingExperiments: true };
+      notify();
+    }
+
+    const result = await fetchExperimentsList();
+    hasCompletedInitialFetch = true;
+    store = {
+      experiments: result.experiments,
+      listError: result.error,
+      loadingExperiments: false,
+    };
+    notify();
+  })();
+
+  try {
+    await inflight;
+  } finally {
     inflight = null;
-    return r;
-  });
-  return inflight;
+  }
+}
+
+function getSnapshot() {
+  return store;
 }
 
 export function useMlflowExperimentsList(): {
@@ -44,40 +148,15 @@ export function useMlflowExperimentsList(): {
   listError: string | null;
   loadingExperiments: boolean;
 } {
-  const [state, setState] = useState<{
-    experiments: MlflowExperimentSummary[];
-    listError: string | null;
-    loadingExperiments: boolean;
-  }>(() =>
-    cached
-      ? {
-          experiments: cached.experiments,
-          listError: cached.error,
-          loadingExperiments: false,
-        }
-      : {
-          experiments: [],
-          listError: null,
-          loadingExperiments: true,
-        },
-  );
+  // Lazy initializer: pass a function so React calls getSnapshot() once (not store fn as state).
+  const [state, setState] = useState(() => getSnapshot());
 
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      setState((s) => ({ ...s, loadingExperiments: true }));
-      const result = await getMlflowExperimentsListCached();
-      if (!cancelled) {
-        setState({
-          experiments: result.experiments,
-          listError: result.error,
-          loadingExperiments: false,
-        });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    const listener = () => setState(getSnapshot());
+    const unsubscribe = subscribe(listener);
+    ensurePollingStarted();
+    void refreshExperimentsList();
+    return unsubscribe;
   }, []);
 
   return state;

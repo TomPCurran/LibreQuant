@@ -11,6 +11,7 @@ import {
 
 import { experimentsPageHref } from "@/lib/experiments/experiments-url";
 import { useExperimentQuerySync } from "@/lib/experiments/use-experiment-query-sync";
+import { formatMlflowApiError } from "@/lib/mlflow-client-error";
 import { useMlflowExperimentsList } from "@/lib/mlflow-experiments-list";
 import type { MlflowRun } from "@/lib/types/mlflow";
 import {
@@ -278,13 +279,14 @@ export function ExperimentExplorer() {
     try {
       const q = new URLSearchParams({ experiment_name: name, max_results: "100" });
       const res = await fetch(`/api/mlflow/runs?${q.toString()}`);
-      const data = (await res.json()) as { runs?: MlflowRun[]; error?: string };
+      const data = (await res.json()) as unknown;
       if (!res.ok) {
-        setListError(data.error ?? "Failed to load runs");
+        setListError(formatMlflowApiError(data, "Failed to load runs"));
         setRuns([]);
         return;
       }
-      setRuns(data.runs ?? []);
+      const body = data as { runs?: MlflowRun[] };
+      setRuns(body.runs ?? []);
     } catch {
       setListError("Failed to load runs");
       setRuns([]);
@@ -323,16 +325,23 @@ export function ExperimentExplorer() {
       const res = await fetch(
         `/api/mlflow/artifacts/download?run_id=${encodeURIComponent(runId)}&path=${encodeURIComponent(path)}`,
       );
+      const bodyText = await res.text();
       if (!res.ok) {
         setEquityByRun((m) => ({ ...m, [runId]: null }));
-        setEquityError((m) => ({
-          ...m,
-          [runId]: "Could not download equity artifact.",
-        }));
+        let msg = "Could not download equity artifact.";
+        try {
+          const j = JSON.parse(bodyText) as unknown;
+          msg = formatMlflowApiError(j, msg);
+        } catch {
+          const t = bodyText.trim();
+          if (t) {
+            msg = t.length > 500 ? `${t.slice(0, 500)}…` : t;
+          }
+        }
+        setEquityError((m) => ({ ...m, [runId]: msg }));
         return;
       }
-      const text = await res.text();
-      setEquityByRun((m) => ({ ...m, [runId]: text }));
+      setEquityByRun((m) => ({ ...m, [runId]: bodyText }));
     } catch {
       setEquityByRun((m) => ({ ...m, [runId]: null }));
       setEquityError((m) => ({
@@ -361,8 +370,8 @@ export function ExperimentExplorer() {
         body: JSON.stringify({ tags: { [OOS_TAG_KEY]: "true" } }),
       });
       if (!res.ok) {
-        const j = (await res.json()) as { error?: string };
-        setListError(j.error ?? "Could not update tags");
+        const j = (await res.json()) as unknown;
+        setListError(formatMlflowApiError(j, "Could not update tags"));
         return;
       }
       setRuns((prev) =>
