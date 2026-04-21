@@ -10,8 +10,17 @@ type CacheState = {
   error: string | null;
 };
 
-/** Poll while at least one component needs the list (sidebar + explorer may both mount). */
-const POLL_INTERVAL_MS = 12_000;
+/**
+ * Poll while at least one component needs the list (sidebar + explorer may both mount).
+ * Default 12s; override with `NEXT_PUBLIC_MLFLOW_EXPERIMENTS_POLL_MS` (see `.env.example`).
+ */
+const POLL_INTERVAL_MS = (() => {
+  const raw = process.env.NEXT_PUBLIC_MLFLOW_EXPERIMENTS_POLL_MS?.trim();
+  if (!raw) return 12_000;
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || n < 1000) return 12_000;
+  return n;
+})();
 
 /**
  * Module-level cache for the experiments list (shared across hook subscribers).
@@ -148,7 +157,12 @@ export function useMlflowExperimentsList(): {
   listError: string | null;
   loadingExperiments: boolean;
 } {
-  // Lazy initializer: pass a function so React calls getSnapshot() once (not store fn as state).
+  /**
+   * Lazy state initializer: `useState(() => getSnapshot())` passes a function so React runs it
+   * once on mount and stores the returned snapshot object. Do not write `useState(getSnapshot)` —
+   * that would store the function itself as state. Subscribers call `setState(getSnapshot())` to
+   * replace state with a fresh snapshot from the module store when the store updates.
+   */
   const [state, setState] = useState(() => getSnapshot());
 
   useEffect(() => {
