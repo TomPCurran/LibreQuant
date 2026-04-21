@@ -21,16 +21,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="LibreQuant — local-first workbench: Next.js shell with Jupyter notebooks and a strategy library. Your Jupyter server, your files, your machine."
+      content="LibreQuant — 100% local quantitative workbench: Jupyter notebooks, Python strategies, data credentials, OHLCV cache, and MLflow experiments. Runs on your machine with Docker Compose (loopback only)."
     />
     <meta id="doc-theme-color" name="theme-color" content="#f9f9fb" />
-    <meta property="og:title" content="LibreQuant | Algorithmic Alpha" />
+    <meta property="og:title" content="LibreQuant | Local-first algorithmic research" />
     <meta
       property="og:description"
-      content="Browser workbench for notebooks and Python strategies, backed by a local Jupyter Server in Docker."
+      content="Open-source browser shell for notebooks, strategies, market data, and MLflow—backed by Jupyter, PostgreSQL, and MLflow on localhost. No hosted runtime."
     />
     <meta property="og:type" content="website" />
-    <title>LibreQuant | Algorithmic Alpha</title>
+    <title>LibreQuant | Local-first algorithmic research</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = { darkMode: "class" };
@@ -49,6 +49,8 @@
         --alpha: 173 80% 36%;
         --risk: 347 77% 50%;
         --border-subtle: 240 6% 90%;
+        --cell-surface: 240 7% 92%;
+        --editor-surface: 40 18% 97%;
       }
 
       /* librequant/app/globals.css — .dark */
@@ -58,6 +60,8 @@
         --text-primary: 210 25% 96%;
         --text-secondary: 220 14% 64%;
         --border-subtle: 222 18% 22%;
+        --cell-surface: 222 26% 13%;
+        --editor-surface: 222 22% 20%;
       }
 
       html {
@@ -253,7 +257,7 @@
       aria-label="Primary"
     >
       <a
-        href="https://github.com/tompcurran/LibreQuant"
+        href="https://github.com/TomPCurran/LibreQuant"
         class="flex items-center gap-3 text-sm text-text-primary hover:opacity-80 transition"
       >
         <svg
@@ -269,12 +273,13 @@
             d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"
           />
         </svg>
-        <span class="font-semibold text-brand-gray">tompcurran</span>
+        <span class="font-semibold text-brand-gray">TomPCurran</span>
         <span class="text-brand-gray-dim">/</span>
         <span class="font-semibold text-text-primary">LibreQuant</span>
       </a>
       <div class="flex flex-wrap items-center gap-2 md:gap-3">
         <div class="hidden sm:flex items-center gap-4 text-xs font-medium">
+          <a href="#features" class="doc-link-muted transition">Features</a>
           <a href="#pillars" class="doc-link-muted transition">Principles</a>
           <a href="#quick-start" class="doc-link-muted transition"
             >Quick start</a
@@ -322,7 +327,7 @@
           </svg>
         </button>
         <a
-          href="https://github.com/tompcurran/LibreQuant"
+          href="https://github.com/TomPCurran/LibreQuant"
           class="doc-link-muted doc-star-badge inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium transition"
         >
           <span class="mr-2 text-text-primary">Star on GitHub</span>
@@ -356,13 +361,15 @@
         <p
           class="text-lg font-light text-text-secondary max-w-2xl mx-auto mb-6 leading-relaxed"
         >
-          A Next.js shell that talks to a Jupyter Server on your machine: open
-          notebooks, browse the library, and edit strategy packages—without
-          shipping your code to a hosted runtime.
+          Run everything on your machine: a Next.js browser shell connects to
+          Jupyter for notebooks, hosts strategy editing and data-source
+          controls, and surfaces MLflow experiments—code, keys, and cache stay
+          under your custody, not in a hosted runtime.
         </p>
         <p class="text-sm text-text-secondary max-w-xl mx-auto mb-8 font-light">
-          The Assistant organizes the workbench; you stay the Architect of
-          signal logic, environment, and how you validate ideas.
+          You own signal logic, credentials, and how you validate ideas; the
+          workbench keeps research artifacts in one routed UI with
+          loopback-bound services by default.
         </p>
 
         <div
@@ -372,17 +379,20 @@
           <span class="doc-chip rounded-full px-3 py-1">Python</span>
           <span class="doc-chip rounded-full px-3 py-1">Jupyter</span>
           <span class="doc-chip rounded-full px-3 py-1">Docker</span>
+          <span class="doc-chip rounded-full px-3 py-1">PostgreSQL</span>
+          <span class="doc-chip rounded-full px-3 py-1">MLflow</span>
           <span class="doc-chip rounded-full px-3 py-1">Next.js</span>
+          <span class="doc-chip rounded-full px-3 py-1">Tailwind</span>
         </div>
 
         <div class="flex flex-wrap justify-center gap-3">
           <a
             href="#quick-start"
             class="inline-flex items-center justify-center bg-alpha text-white px-6 py-2.5 rounded-full font-medium text-sm hover:opacity-90 transition shadow-md shadow-[#0d9488]/20"
-            >Get Started (Docker)</a
+            >Get started (Docker)</a
           >
           <a
-            href="https://github.com/tompcurran/LibreQuant"
+            href="https://github.com/TomPCurran/LibreQuant"
             class="doc-btn-secondary inline-flex items-center justify-center glass text-text-primary px-6 py-2.5 rounded-full font-medium text-sm transition"
             >View on GitHub</a
           >
@@ -398,7 +408,7 @@
         <p
           class="text-center text-xs font-semibold tracking-[0.12em] text-text-secondary mb-8 uppercase"
         >
-          Three pillars
+          Principles
         </p>
         <div class="grid md:grid-cols-3 gap-4 md:gap-5">
           <div class="glass p-6 rounded-4xl text-left">
@@ -430,8 +440,8 @@
             </h3>
             <p class="text-sm font-light text-text-secondary leading-relaxed">
               Python runs in the notebook kernel (Docker by default). The app
-              uses the standard Jupyter protocol for files, kernels, and
-              cells—familiar tooling, local process.
+              speaks the standard Jupyter protocol for contents, kernels, and
+              cells—familiar research tooling, always a local process.
             </p>
           </div>
           <div class="glass p-6 rounded-4xl text-left">
@@ -462,12 +472,14 @@
               </svg>
             </div>
             <h3 class="heading-brand text-text-primary text-base mb-2">
-              Local custody
+              Local custody &amp; credentials
             </h3>
             <p class="text-sm font-light text-text-secondary leading-relaxed">
-              Notebooks and strategies live in your Jupyter workspace (e.g.
-              Docker volume). You hold the token and filesystem layout—the app
-              is not a hosted black box.
+              Notebooks, strategies, and data live in your Jupyter workspace
+              volume. API keys stay in
+              <span class="font-mono-code text-[12px]">.env.local</span> (and
+              sync to the workspace for kernels). Services bind to loopback by
+              default—not a hosted black box.
             </p>
           </div>
           <div class="glass p-6 rounded-4xl text-left">
@@ -508,118 +520,296 @@
               </svg>
             </div>
             <h3 class="heading-brand text-text-primary text-base mb-2">
-              One workbench shell
+              One workbench for research &amp; experiments
             </h3>
             <p class="text-sm font-light text-text-secondary leading-relaxed">
-              Notebook library, strategy tree, and Python editor in one routed
-              UI—so you move between research artifacts without juggling
-              disconnected tools.
+              Notebook library, strategy editor, data sources, uploads, and
+              MLflow experiment browsing share one sidebar and header—move
+              between artifacts without juggling separate tools.
             </p>
           </div>
         </div>
       </section>
 
-      <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-6 px-6 pb-20">
-        <div class="glass p-8 rounded-4xl">
-          <div class="mb-5 text-brand-gray" aria-hidden="true">
-            <svg
-              width="40"
-              height="40"
-              viewBox="0 0 40 40"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M8 12h10v16H8V12z"
-                stroke="currentColor"
-                stroke-width="1.75"
-                stroke-linejoin="round"
-              />
-              <path
-                d="M22 20c0-5 4-9 9-9"
-                stroke="currentColor"
-                stroke-width="1.75"
-                stroke-linecap="round"
-              />
-              <circle
-                cx="31"
-                cy="20"
-                r="3"
-                stroke="currentColor"
-                stroke-width="1.75"
-              />
-              <path
-                d="M12 28l8-8 4 4 6-6"
-                stroke="currentColor"
-                stroke-width="1.75"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
+      <section
+        id="features"
+        class="max-w-5xl mx-auto px-6 pb-20 scroll-mt-24"
+        aria-labelledby="features-heading"
+      >
+        <h2
+          id="features-heading"
+          class="text-center text-xs font-semibold tracking-[0.12em] text-text-secondary mb-8 uppercase"
+        >
+          Features
+        </h2>
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="glass p-8 rounded-4xl">
+            <div class="mb-5 text-brand-gray" aria-hidden="true">
+              <svg
+                width="40"
+                height="40"
+                viewBox="0 0 40 40"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M8 12h10v16H8V12z"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M22 20c0-5 4-9 9-9"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                />
+                <circle
+                  cx="31"
+                  cy="20"
+                  r="3"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                />
+                <path
+                  d="M12 28l8-8 4 4 6-6"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+            <h3 class="heading-brand text-text-primary text-lg mb-2">
+              Notebooks &amp; kernel
+            </h3>
+            <p class="text-sm font-light text-text-secondary leading-relaxed">
+              Open and save
+              <span class="font-mono-code text-[12px]">.ipynb</span> files via
+              the Jupyter Contents API; run cells; use the toolbar for run all,
+              interrupt, reset session, and rename. Search PyPI and install
+              packages into the kernel when your setup allows it.
+            </p>
           </div>
-          <h3 class="heading-brand text-text-primary text-lg mb-2">
-            Notebooks &amp; kernel
-          </h3>
-          <p class="text-sm font-light text-text-secondary leading-relaxed">
-            Open and save
-            <span class="font-mono-code text-[12px]">.ipynb</span> files through
-            the Jupyter Contents API, run cells, and manage the session from the
-            workbench toolbar.
-          </p>
-        </div>
-        <div class="glass p-8 rounded-4xl">
-          <div class="mb-5 text-brand-gray" aria-hidden="true">
-            <svg
-              width="40"
-              height="40"
-              viewBox="0 0 40 40"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <rect
-                x="8"
-                y="10"
-                width="24"
-                height="20"
-                rx="3"
-                stroke="currentColor"
-                stroke-width="1.75"
-              />
-              <path
-                d="M14 18h4M22 18h4"
-                stroke="currentColor"
-                stroke-width="1.75"
-                stroke-linecap="round"
-              />
-              <path
-                d="M12 26h16"
-                stroke="currentColor"
-                stroke-width="1.75"
-                stroke-linecap="round"
-              />
-              <circle
-                cx="20"
-                cy="30"
-                r="2"
-                stroke="currentColor"
-                stroke-width="1.5"
-              />
-            </svg>
+          <div class="glass p-8 rounded-4xl">
+            <div class="mb-5 text-brand-gray" aria-hidden="true">
+              <svg
+                width="40"
+                height="40"
+                viewBox="0 0 40 40"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  x="8"
+                  y="10"
+                  width="24"
+                  height="20"
+                  rx="3"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                />
+                <path
+                  d="M14 18h4M22 18h4"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M12 26h16"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                />
+                <circle
+                  cx="20"
+                  cy="30"
+                  r="2"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                />
+              </svg>
+            </div>
+            <h3 class="heading-brand text-text-primary text-lg mb-2">
+              Strategy library
+            </h3>
+            <p class="text-sm font-light text-text-secondary leading-relaxed">
+              Browse and edit Python under the strategies tree; new modules
+              ship with a
+              <span class="font-mono-code text-[12px]">PARAMS</span> dict and
+              <span class="font-mono-code text-[12px]">signal</span> stub.
+              Notebooks import from the same
+              <span class="font-mono-code text-[12px]">PYTHONPATH</span> layout
+              Docker provides.
+            </p>
           </div>
-          <h3 class="heading-brand text-text-primary text-lg mb-2">
-            Strategy library
-          </h3>
-          <p class="text-sm font-light text-text-secondary leading-relaxed">
-            Create and edit strategy packages on the server; new modules include
-            a <span class="font-mono-code text-[12px]">PARAMS</span> dict and
-            <span class="font-mono-code text-[12px]">signal</span> stub so
-            notebooks can import from the shared
-            <span class="font-mono-code text-[12px]">PYTHONPATH</span>.
-          </p>
+          <div class="glass p-8 rounded-4xl">
+            <div class="mb-5 text-brand-gray" aria-hidden="true">
+              <svg
+                width="40"
+                height="40"
+                viewBox="0 0 40 40"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M10 14h20v16H10V14z"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M14 10h12v4H14v-4z"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M16 22h8M16 26h5"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
+            <h3 class="heading-brand text-text-primary text-lg mb-2">
+              Data &amp; credentials
+            </h3>
+            <p class="text-sm font-light text-text-secondary leading-relaxed">
+              Configure market data API keys in the Data sources page (stored in
+              <span class="font-mono-code text-[12px]">.env.local</span> and
+              synced to
+              <span class="font-mono-code text-[12px]">config/credentials.env</span>
+              in the workspace). Use
+              <span class="font-mono-code text-[12px]">librequant.data</span> for
+              OHLCV with a local Parquet cache; upload CSVs and browse the data
+              library from the sidebar.
+            </p>
+          </div>
+          <div class="glass p-8 rounded-4xl">
+            <div class="mb-5 text-brand-gray" aria-hidden="true">
+              <svg
+                width="40"
+                height="40"
+                viewBox="0 0 40 40"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 28c0-6 4-10 8-12 4 2 8 6 8 12"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                />
+                <circle
+                  cx="20"
+                  cy="14"
+                  r="4"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                />
+                <path
+                  d="M8 30h24"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
+            <h3 class="heading-brand text-text-primary text-lg mb-2">
+              MLflow experiments
+            </h3>
+            <p class="text-sm font-light text-text-secondary leading-relaxed">
+              Browse runs per strategy (experiment) in the workbench, compare
+              params and metrics, and open the local MLflow Tracking UI from the
+              sidebar (full UI in a new tab). Runs are stored with Postgres and
+              local artifacts from Docker Compose—no cloud MLflow required.
+            </p>
+          </div>
+          <div class="glass p-8 rounded-4xl">
+            <div class="mb-5 text-brand-gray" aria-hidden="true">
+              <svg
+                width="40"
+                height="40"
+                viewBox="0 0 40 40"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  x="8"
+                  y="12"
+                  width="24"
+                  height="18"
+                  rx="2"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                />
+                <path
+                  d="M12 18h8M12 22h16M12 26h10"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                />
+                <ellipse
+                  cx="28"
+                  cy="10"
+                  rx="5"
+                  ry="3"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                />
+              </svg>
+            </div>
+            <h3 class="heading-brand text-text-primary text-lg mb-2">
+              Docker Compose stack
+            </h3>
+            <p class="text-sm font-light text-text-secondary leading-relaxed">
+              One Compose file brings up Jupyter, PostgreSQL, and MLflow with
+              host loopback ports and a bind-mounted workspace (notebooks,
+              <span class="font-mono-code text-[12px]">strategies/</span>,
+              cache, and config). Read the repo README for ports, tokens, and
+              security expectations.
+            </p>
+          </div>
+          <div class="glass p-8 rounded-4xl">
+            <div class="mb-5 text-brand-gray" aria-hidden="true">
+              <svg
+                width="40"
+                height="40"
+                viewBox="0 0 40 40"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M10 12h20v20H10V12z"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M14 18h12M14 22h10M14 26h8"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
+            <h3 class="heading-brand text-text-primary text-lg mb-2">
+              In-app guides
+            </h3>
+            <p class="text-sm font-light text-text-secondary leading-relaxed">
+              A <span class="font-mono-code text-[12px]">/documentation</span> page
+              in the workbench walks through notebooks, kernel controls, data
+              sources, and strategies—aimed at contributors and advanced users.
+            </p>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div class="max-w-4xl mx-auto px-6 pb-16">
+      <div
+        id="strategy-template"
+        class="max-w-4xl mx-auto px-6 pb-16 scroll-mt-24"
+      >
         <h2
           class="text-center text-xs font-semibold tracking-[0.12em] text-text-secondary mb-8 uppercase"
         >
@@ -652,26 +842,27 @@
         </h2>
         <div class="glass rounded-4xl p-6 md:p-8">
           <p class="text-sm font-light text-text-secondary mb-4">
-            Fastest path: clone the repo and bring up Jupyter with Docker
-            Compose, then run the Next.js app from
-            <span class="font-mono-code text-[12px]">librequant/</span> (see the
-            repo README for the one-command dev stack).
+            From <span class="font-mono-code text-[12px]">librequant/</span>,
+            <span class="font-mono-code text-[12px]">npm run dev:stack</span> runs
+            <span class="font-mono-code text-[12px]">docker compose up -d</span> at
+            the repository root (Jupyter, PostgreSQL, MLflow), waits for Jupyter,
+            then starts Next.js at
+            <span class="font-mono-code text-[12px]">http://localhost:3000</span>.
           </p>
           <pre
             class="font-mono-code text-[12px] md:text-[13px] leading-relaxed text-text-primary bg-pre-inline rounded-2xl p-4 overflow-x-auto border border-solid doc-border-subtle"
-          ><code># Clone
-git clone https://github.com/tompcurran/LibreQuant.git
-cd LibreQuant
-
-# Jupyter (repo root)
-docker compose up -d
-
-# App — from librequant/
-cd librequant &amp;&amp; npm install &amp;&amp; npm run dev:stack</code></pre>
-          <p class="mt-4 text-xs text-text-secondary">
-            See
-            <span class="font-mono-code text-[12px]">librequant/README.md</span>
-            for environment variables, security notes, and configuration.
+          ><code>git clone https://github.com/TomPCurran/LibreQuant.git
+cd LibreQuant/librequant
+npm install
+npm run dev:stack</code></pre>
+          <p class="mt-4 text-xs text-text-secondary leading-relaxed">
+            Compose starts Jupyter (port <span class="font-mono-code text-[12px]">8888</span>),
+            MLflow (<span class="font-mono-code text-[12px]">5000</span>), and Postgres on
+            loopback—see
+            <span class="font-mono-code text-[12px]">librequant/README.md</span> for
+            <span class="font-mono-code text-[12px]">NEXT_PUBLIC_*</span> variables
+            (Jupyter URL, token, MLflow UI URL) and
+            <span class="font-mono-code text-[12px]">SECURITY.md</span> for the local threat model.
           </p>
         </div>
       </section>
@@ -694,11 +885,11 @@ cd librequant &amp;&amp; npm install &amp;&amp; npm run dev:stack</code></pre>
             </dt>
             <dd class="text-sm font-light text-text-secondary leading-relaxed">
               JupyterLab already runs kernels and files. LibreQuant adds a
-              focused Next.js UI: notebook library routes, a strategy file tree,
+              focused Next.js shell: notebook library routes, a strategy editor,
+              data-source and credential management, MLflow experiment browsing,
               loading states for Jupyter connectivity, and helpers that align
               <span class="font-mono-code text-[12px]">PYTHONPATH</span> with
-              your compose layout—so you spend less time wiring paths and tabs
-              by hand.
+              Compose—so you spend less time wiring paths, env, and tabs by hand.
             </dd>
           </div>
           <div class="glass rounded-3xl px-5 py-4">
@@ -710,6 +901,32 @@ cd librequant &amp;&amp; npm install &amp;&amp; npm run dev:stack</code></pre>
               Docker container on your machine). The browser shell does not
               replace the kernel—it connects to it over the standard Jupyter
               HTTP and WebSocket APIs.
+            </dd>
+          </div>
+          <div class="glass rounded-3xl px-5 py-4">
+            <dt class="heading-brand text-text-primary text-sm mb-1">
+              Where do API keys live?
+            </dt>
+            <dd class="text-sm font-light text-text-secondary leading-relaxed">
+              Keys for data providers belong in
+              <span class="font-mono-code text-[12px]">librequant/.env.local</span>
+              (gitignored). Saving from the Data sources UI also writes a synced
+              <span class="font-mono-code text-[12px]">config/credentials.env</span>
+              into your Jupyter workspace for kernels. Never commit secrets;
+              treat the Jupyter token like a password too (see
+              <span class="font-mono-code text-[12px]">SECURITY.md</span>).
+            </dd>
+          </div>
+          <div class="glass rounded-3xl px-5 py-4">
+            <dt class="heading-brand text-text-primary text-sm mb-1">
+              What is MLflow used for?
+            </dt>
+            <dd class="text-sm font-light text-text-secondary leading-relaxed">
+              MLflow stores experiment runs and metrics you log from notebooks
+              (e.g. backtests), with a local server and Postgres backend from
+              Docker Compose. It helps you compare iterations—it does
+              <span class="text-risk font-medium">not</span> validate investment
+              merit or replace your own methodology.
             </dd>
           </div>
           <div class="glass rounded-3xl px-5 py-4">
@@ -735,19 +952,19 @@ cd librequant &amp;&amp; npm install &amp;&amp; npm run dev:stack</code></pre>
         <p class="mb-3">© 2026 LibreQuant · MIT License</p>
         <p class="flex flex-wrap justify-center gap-x-3 gap-y-1">
           <a
-            href="https://github.com/tompcurran/LibreQuant"
+            href="https://github.com/TomPCurran/LibreQuant"
             class="doc-footer-link transition"
             >GitHub</a
           >
           <span class="text-brand-gray-dim" aria-hidden="true">·</span>
           <a
-            href="https://github.com/tompcurran/LibreQuant/blob/main/librequant/README.md"
+            href="https://github.com/TomPCurran/LibreQuant/blob/main/librequant/README.md"
             class="doc-footer-link transition"
             >Documentation</a
           >
           <span class="text-brand-gray-dim" aria-hidden="true">·</span>
           <a
-            href="https://github.com/tompcurran/LibreQuant/discussions"
+            href="https://github.com/TomPCurran/LibreQuant/discussions"
             class="doc-footer-link transition"
             >Discussions</a
           >
