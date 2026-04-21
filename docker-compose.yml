@@ -11,6 +11,7 @@ services:
       - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-mlflow-db.sql:/docker-entrypoint-initdb.d/20-init-mlflow-db.sql:ro
     healthcheck:
       # $$ → $ in the container shell so POSTGRES_USER from the image env is used
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d librequant"]
@@ -19,10 +20,85 @@ services:
       retries: 5
       start_period: 10s
 
-  jupyter:
-    image: quay.io/jupyter/scipy-notebook:latest
+  # Ensures database `mlflow` exists on every `compose up`. Init scripts under
+  # docker-entrypoint-initdb.d only run on *first* cluster init — existing volumes skip them,
+  # which otherwise leaves MLflow unable to connect (FATAL: database "mlflow" does not exist).
+  mlflow-db-init:
+    image: postgres:17
     depends_on:
       postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-librequant}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-librequant}
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -e
+        if psql -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'mlflow'" | grep -q 1; then
+          echo "[mlflow-db-init] Database mlflow already exists."
+        else
+          psql -d postgres -c "CREATE DATABASE mlflow;"
+          echo "[mlflow-db-init] Created database mlflow."
+        fi
+    restart: "no"
+
+  mlflow:
+    # Must match packages/librequant pyproject optional `mlflow` pin (2.22.4). `latest` is often
+    # MLflow 3.x and migrates Postgres with revisions Jupyter's 2.x client cannot apply.
+    # If you previously ran MLflow 3.x (`:latest`) against this volume, the `mlflow` DB holds 3.x
+    # Alembic revisions; downgrade to 2.x then requires DROP/CREATE DATABASE mlflow (see env.docker.example).
+    # Base image lacks psycopg2; SQLAlchemy needs it for postgresql:// backend stores.
+    build:
+      context: docker/mlflow
+      dockerfile: Dockerfile
+    image: librequant-mlflow:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mlflow-db-init:
+        condition: service_completed_successfully
+    environment:
+      # Same credentials as Jupyter / librequant DB — separate logical database `mlflow`.
+      MLFLOW_BACKEND_STORE_URI: postgresql://${POSTGRES_USER:-librequant}:${POSTGRES_PASSWORD:-librequant}@postgres:5432/mlflow
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - mlflow_artifacts:/mlflow/artifacts
+    command:
+      - bash
+      - -c
+      - |
+        # MLflow 2.x has no mlflow.server.security_utils / Host allowlist middleware (that is 3.x).
+        # If you upgrade the server to v3+, restore the MLFLOW_SERVER_ALLOWED_HOSTS merge from git history.
+        exec mlflow server \
+          --backend-store-uri "$$MLFLOW_BACKEND_STORE_URI" \
+          --default-artifact-root file:/mlflow/artifacts \
+          --artifacts-destination file:/mlflow/artifacts \
+          --serve-artifacts \
+          --host 0.0.0.0 \
+          --port 5000
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health')\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  jupyter:
+    build:
+      context: .
+      dockerfile: docker/jupyter/Dockerfile
+    image: librequant-jupyter:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mlflow:
         condition: service_healthy
     # Must match getJupyterUserHomeAbsolute() + getStrategyLibraryRoot() in lib/env.ts (default: /home/jovyan/work/librequant/strategies).
     env_file:
@@ -35,15 +111,23 @@ services:
       # In-container hostname; kernels use this URL. Host tools use 127.0.0.1 — see Data sources UI.
       # Use a POSTGRES_PASSWORD without URL-reserved characters (@ : / ? # %) or URL-encode manually in a custom override.
       LIBREQUANT_DATABASE_URL: postgresql://${POSTGRES_USER:-librequant}:${POSTGRES_PASSWORD:-librequant}@postgres:5432/librequant
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      # Same DB the MLflow server uses; lets librequant permanently remove soft-deleted experiments
+      # with incompatible file: artifact roots so they can be recreated as mlflow-artifacts:/ .
+      # Use postgresql+psycopg (psycopg3): the image has psycopg, not psycopg2, which MLflow would
+      # otherwise pull in for plain postgresql:// URLs.
+      MLFLOW_BACKEND_STORE_URI: postgresql+psycopg://${POSTGRES_USER:-librequant}:${POSTGRES_PASSWORD:-librequant}@postgres:5432/mlflow
     volumes:
       # Host folder → LibreQuant workspace inside the container (notebooks, data/uploads, config/).
       # Override with LIBREQUANT_JUPYTER_WORKSPACE_HOST in a repo-root .env file (see env.docker.example).
       # Example: /Users/you/Desktop/notebooks so .ipynb files appear there in Finder.
       # Default ./jupyter-workspace is created next to this file and is gitignored.
       - ${LIBREQUANT_JUPYTER_WORKSPACE_HOST:-./jupyter-workspace}:/home/jovyan/work/librequant
-      # Editable Python package: pip install on each container start (adds startup time + network for deps).
-      # For faster cold starts or air-gapped use, use a custom image that pre-installs packages/librequant.
+      # Editable Python package: runtime pip installs only the local tree; dependencies are baked into
+      # docker/jupyter/Dockerfile from packages/librequant/pyproject.toml.
       - ./packages/librequant:/opt/librequant:ro
+      # Ship demo notebooks into the workspace on first start (see jupyter `command` below).
+      - ./librequant/notebooks:/opt/librequant-notebooks:ro
       # For local strategy development on the host (uncomment; path is relative to this file):
       # - librequant/strategies:/home/jovyan/work/librequant/strategies
     # Host loopback only: Jupyter not exposed on the LAN from this machine (see SECURITY.md).
@@ -56,9 +140,17 @@ services:
         mkdir -p /home/jovyan/work/librequant/strategies \
           /home/jovyan/work/librequant/data/uploads \
           /home/jovyan/work/librequant/config
-        # Versions pinned in packages/librequant/pyproject.toml; pip still resolves on each start unless cached.
-        pip install -q pip setuptools wheel
-        pip install -q '/opt/librequant[postgres]'
+        if [ -d /opt/librequant-notebooks ]; then
+          for f in /opt/librequant-notebooks/*.ipynb; do
+            [ -f "$$f" ] || continue
+            b=$$(basename "$$f")
+            if [ ! -e "/home/jovyan/work/librequant/$$b" ]; then
+              cp "$$f" /home/jovyan/work/librequant/
+            fi
+          done
+        fi
+        # Editable install only — heavy deps pre-baked in the image (see docker/jupyter/Dockerfile).
+        pip install -q '/opt/librequant[postgres,mlflow]'
         exec start-notebook.sh \
           --IdentityProvider.token=devtoken \
           --ServerApp.disable_check_xsrf=True \
@@ -67,3 +159,4 @@ services:
 
 volumes:
   postgres_data:
+  mlflow_artifacts:

@@ -19,6 +19,10 @@ dependencies = [
 
 [project.optional-dependencies]
 postgres = ["psycopg[binary]>=3.1"]
+# Keep in sync with the `mlflow` service image in docker-compose.yml (e.g. v2.22.4). Using
+# `latest` for the server while the client stays on 2.x migrates Postgres with 3.x revisions
+# the 2.x client cannot read (Alembic "Can't locate revision").
+mlflow = ["mlflow==2.22.4", "scikit-learn>=1.3"]
 dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.8", "pandas-stubs", "types-requests"]
 
 [tool.hatch.build.targets.wheel]
@@ -39,6 +43,10 @@ show_error_codes = true
 
 [[tool.mypy.overrides]]
 module = "yfinance.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "mlflow.*"
 ignore_missing_imports = true
 
 # Pandas/psycopg stubs are strict about overloads that do not match dynamic kwargs / psycopg connections.

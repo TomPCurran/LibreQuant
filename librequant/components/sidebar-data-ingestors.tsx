@@ -352,7 +352,7 @@ export function SidebarDataIngestors() {
           onClick={toggleSection}
           className="flex shrink-0 items-center justify-center rounded p-0.5 text-text-secondary transition hover:text-text-primary"
           aria-label={
-            sectionOpen ? "Collapse data ingestors" : "Expand data ingestors"
+            sectionOpen ? "Collapse data and keys section" : "Expand data and keys section"
           }
         >
           {sectionOpen ? (
@@ -369,7 +369,7 @@ export function SidebarDataIngestors() {
               : "text-text-secondary hover:text-text-primary"
           }`}
         >
-          Data Ingestors
+          Data & keys
         </Link>
       </div>
 

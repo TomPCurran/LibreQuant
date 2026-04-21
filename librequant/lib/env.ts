@@ -74,6 +74,20 @@ export function getPublicJupyterConfig(): {
   return { baseUrl, token };
 }
 
+/** Default MLflow Tracking UI origin (must match `docker-compose` published port unless overridden). */
+export const DEFAULT_MLFLOW_UI_URL = "http://127.0.0.1:5000";
+
+/**
+ * Origin of the MLflow Tracking UI (sidebar preview iframe and “open in new tab” link).
+ * Uses {@link normalizeLocalJupyterBaseUrl} so `localhost` matches Docker IPv4 bindings.
+ * Must stay aligned with `frame-src` in `next.config.ts` when overriding the port or host.
+ */
+export function getPublicMlflowUiUrl(): string {
+  const raw =
+    process.env.NEXT_PUBLIC_MLFLOW_UI_URL?.trim() ?? DEFAULT_MLFLOW_UI_URL;
+  return normalizeLocalJupyterBaseUrl(raw);
+}
+
 const DEFAULT_JUPYTER_USER_HOME = "/home/jovyan";
 const DEFAULT_NOTEBOOK_ROOT = "work/librequant";
 

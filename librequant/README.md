@@ -24,6 +24,7 @@ Loading screens spell out which phase is active (connecting to the server vs sta
 | [`app/strategies/page.tsx`](app/strategies/page.tsx) | Strategy library browser. |
 | [`app/strategies/edit/page.tsx`](app/strategies/edit/page.tsx) | Strategy editor (files under the strategies tree via Contents API). |
 | [`app/data-sources/page.tsx`](app/data-sources/page.tsx) | Data sources: API keys (`.env.local`), uploads, and links to OHLCV cache docs. |
+| [`app/experiments/page.tsx`](app/experiments/page.tsx) | MLflow experiments: browse runs; selection is shareable via `?experiment=` (see [`.env.example`](.env.example) for `NEXT_PUBLIC_MLFLOW_UI_URL` vs Compose). |
 
 Layouts and global UI: [`app/layout.tsx`](app/layout.tsx) (fonts, theme, skip link); client providers in [`components/providers.tsx`](components/providers.tsx) (`JupyterReachabilityStack`).
 
@@ -43,6 +44,7 @@ Copy [`.env.example`](.env.example) to `.env.local` and adjust (or rely on `pred
 | `NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT` | Contents path for the notebook library relative to Jupyter root (default `work/librequant`).                                                                                                                                                                                                                    |
 | `NEXT_PUBLIC_STRATEGIES_VIA_PYTHONPATH` | Default assumes Docker’s `PYTHONPATH` (Compose stack). Set to `0` only to force browser `sys.path` injection (e.g. Jupyter without matching `PYTHONPATH`). If you change `NEXT_PUBLIC_JUPYTER_NOTEBOOK_ROOT` or `NEXT_PUBLIC_JUPYTER_USER_HOME`, update the `PYTHONPATH` line in the repository root `docker-compose.yml` so it matches `getJupyterUserHomeAbsolute()` + `getStrategyLibraryRoot()` in `lib/env.ts`. |
 | `NEXT_PUBLIC_JUPYTER_USER_HOME`     | Absolute Linux home inside the container for kernel snippets that join paths (default `/home/jovyan`).                                                                                                                                                                                                          |
+| `NEXT_PUBLIC_MLFLOW_UI_URL`        | HTTP origin for the embedded MLflow UI iframe and CSP `frame-src` (default `http://127.0.0.1:5000`). Must match the MLflow service port published in the repository root `docker-compose.yml`. Documented with operator notes in [`.env.example`](.env.example). |
 | `NEXT_PUBLIC_JUPYTER_VERBOSE`       | Set to `1` to disable dev log filtering in `lib/jupyter-dev-noise.ts`.                                                                                                                                                                                                                                          |
 | `ALPACA_API_KEY` / `ALPACA_SECRET_KEY` | Server-only and Jupyter: Alpaca Market Data (see [`packages/librequant`](../packages/librequant)). Set in `.env.local`; never commit. |
 | `POLYGON_API_KEY` / `TIINGO_API_KEY` | Reserved for future connectors; same rules as above. |
