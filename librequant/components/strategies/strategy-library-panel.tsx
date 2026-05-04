@@ -1,160 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import {
-  ChevronDown,
-  ChevronRight,
-  ClipboardCopy,
-  Code2,
-  FileCode2,
-  FolderPlus,
-  Loader2,
-  Plus,
-  Trash2,
-} from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { useJupyterServiceManager } from "@/lib/use-jupyter-service-manager";
-import { formatDateTime } from "@/lib/format-date-time";
-import {
-  buildImportSnippet,
-  createStrategyDirectory,
-  createStrategyFile,
-  deleteStrategyDirectory,
-  deleteStrategyFile,
-  listStrategyDirectories,
-} from "@/lib/strategy-contents";
-import type { StrategyDirectoryItem } from "@/lib/types/strategy";
+import { Loader2 } from "lucide-react";
 
-import { StrategyConfirmDialog } from "./strategy-confirm-dialog";
-
-type DeleteDialogState =
-  | { kind: "dir"; path: string }
-  | { kind: "file"; path: string }
-  | null;
+import {
+  StrategyDeleteDialog,
+  StrategyLibraryDirectoryList,
+} from "./strategy-delete-dialog";
+import { StrategyLibraryToolbar } from "./strategy-library-toolbar";
+import { useStrategyLibrary } from "./use-strategy-library";
 
 export function StrategyLibraryPanel() {
-  const router = useRouter();
-  const { serviceManager, error: mgrError } = useJupyterServiceManager();
-  const [items, setItems] = useState<StrategyDirectoryItem[]>([]);
-  const [listError, setListError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [busyAction, setBusyAction] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [newStrategyName, setNewStrategyName] = useState("");
-  const [showNewForm, setShowNewForm] = useState(false);
-  const [newFileDir, setNewFileDir] = useState<string | null>(null);
-  const [newFileName, setNewFileName] = useState("");
-  const [copiedPath, setCopiedPath] = useState<string | null>(null);
-  const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState>(null);
-
-  const refresh = useCallback(async () => {
-    if (!serviceManager) return;
-    setListError(null);
-    setLoading(true);
-    try {
-      const list = await listStrategyDirectories(serviceManager.contents);
-      setItems(list);
-    } catch (e) {
-      setListError(
-        e instanceof Error ? e.message : "Failed to list strategies.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [serviceManager]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  const toggleExpand = (path: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(path)) next.delete(path);
-      else next.add(path);
-      return next;
-    });
-  };
-
-  const onCreateStrategy = async () => {
-    if (!serviceManager || !newStrategyName.trim()) return;
-    setBusyAction("new");
-    try {
-      const dirPath = await createStrategyDirectory(
-        serviceManager.contents,
-        newStrategyName,
-      );
-      setNewStrategyName("");
-      setShowNewForm(false);
-      await refresh();
-      setExpanded((prev) => new Set(prev).add(dirPath));
-    } catch (e) {
-      setListError(
-        e instanceof Error ? e.message : "Could not create strategy.",
-      );
-    } finally {
-      setBusyAction(null);
-    }
-  };
-
-  const onAddFile = async (dirPath: string) => {
-    if (!serviceManager || !newFileName.trim()) return;
-    setBusyAction("add-file");
-    try {
-      await createStrategyFile(
-        serviceManager.contents,
-        dirPath,
-        newFileName,
-      );
-      setNewFileName("");
-      setNewFileDir(null);
-      await refresh();
-    } catch (e) {
-      setListError(
-        e instanceof Error ? e.message : "Could not create file.",
-      );
-    } finally {
-      setBusyAction(null);
-    }
-  };
-
-  const onDeleteDir = (dirPath: string) => {
-    setDeleteDialog({ kind: "dir", path: dirPath });
-  };
-
-  const onDeleteFile = (filePath: string) => {
-    setDeleteDialog({ kind: "file", path: filePath });
-  };
-
-  const runPendingDelete = async () => {
-    if (!serviceManager || !deleteDialog) return;
-    setBusyAction("delete");
-    try {
-      if (deleteDialog.kind === "dir") {
-        await deleteStrategyDirectory(serviceManager.contents, deleteDialog.path);
-      } else {
-        await deleteStrategyFile(serviceManager.contents, deleteDialog.path);
-      }
-      await refresh();
-    } catch (e) {
-      setListError(e instanceof Error ? e.message : "Delete failed.");
-    } finally {
-      setBusyAction(null);
-      setDeleteDialog(null);
-    }
-  };
-
-  const onCopyImport = async (filePath: string) => {
-    const snippet = buildImportSnippet(filePath);
-    await navigator.clipboard.writeText(snippet);
-    setCopiedPath(filePath);
-    setTimeout(() => setCopiedPath(null), 2000);
-  };
-
-  const onOpenFile = (filePath: string) => {
-    router.push(`/strategies/edit?path=${encodeURIComponent(filePath)}`);
-  };
+  const {
+    serviceManager,
+    mgrError,
+    items,
+    listError,
+    loading,
+    busyAction,
+    expanded,
+    newStrategyName,
+    setNewStrategyName,
+    showNewForm,
+    setShowNewForm,
+    newFileDir,
+    setNewFileDir,
+    newFileName,
+    setNewFileName,
+    copiedPath,
+    deleteDialog,
+    setDeleteDialog,
+    toggleExpand,
+    onCreateStrategy,
+    onAddFile,
+    onDeleteDir,
+    onDeleteFile,
+    runPendingDelete,
+    onCopyImport,
+    onOpenFile,
+  } = useStrategyLibrary();
 
   const combinedError = mgrError ?? listError;
 
@@ -172,64 +56,15 @@ export function StrategyLibraryPanel() {
           </code>{" "}
           files you can import into notebooks.
         </p>
-        <div className="flex flex-wrap items-center gap-2">
-          {showNewForm ? (
-            <div className="flex items-center gap-2">
-              <input
-                value={newStrategyName}
-                onChange={(e) => setNewStrategyName(e.target.value)}
-                placeholder="strategy_name"
-                className="min-w-[180px] rounded-full border border-foreground/12 bg-background/80 px-3 py-2 text-sm font-light text-text-primary outline-none ring-alpha/30 focus:ring-2"
-                aria-label="New strategy directory name"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void onCreateStrategy();
-                  if (e.key === "Escape") {
-                    setShowNewForm(false);
-                    setNewStrategyName("");
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => void onCreateStrategy()}
-                disabled={
-                  !serviceManager ||
-                  busyAction !== null ||
-                  !newStrategyName.trim()
-                }
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-alpha px-4 py-2 text-sm font-medium text-white shadow-md shadow-alpha/20 transition hover:opacity-90 disabled:opacity-50"
-              >
-                {busyAction === "new" ? (
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                ) : (
-                  <Plus className="size-4" aria-hidden />
-                )}
-                Create
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowNewForm(false);
-                  setNewStrategyName("");
-                }}
-                className="rounded-full border border-foreground/12 px-3 py-2 text-sm font-medium text-text-secondary transition hover:text-text-primary"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowNewForm(true)}
-              disabled={!serviceManager || busyAction !== null}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-alpha px-5 py-2.5 text-sm font-medium text-white shadow-md shadow-alpha/20 transition hover:opacity-90 disabled:opacity-50"
-            >
-              <FolderPlus className="size-4" aria-hidden />
-              New Strategy
-            </button>
-          )}
-        </div>
+        <StrategyLibraryToolbar
+          serviceManager={serviceManager}
+          busyAction={busyAction}
+          showNewForm={showNewForm}
+          setShowNewForm={setShowNewForm}
+          newStrategyName={newStrategyName}
+          setNewStrategyName={setNewStrategyName}
+          onCreateStrategy={onCreateStrategy}
+        />
       </div>
 
       {combinedError ? (
@@ -264,199 +99,22 @@ export function StrategyLibraryPanel() {
       ) : null}
 
       {items.length > 0 ? (
-        <div className="flex flex-col gap-3">
-          {items.map((dir) => {
-            const isExpanded = expanded.has(dir.path);
-            const pyFiles = dir.files.filter(
-              (f) => f.type === "file" && f.name.endsWith(".py"),
-            );
-            const otherFiles = dir.files.filter(
-              (f) =>
-                f.type === "file" &&
-                !f.name.endsWith(".py") &&
-                f.name !== "meta.json",
-            );
-
-            return (
-              <div key={dir.path} className="glass rounded-3xl">
-                <div className="flex items-center gap-3 px-4 py-4">
-                  <button
-                    type="button"
-                    onClick={() => toggleExpand(dir.path)}
-                    className="flex shrink-0 items-center justify-center rounded-full p-1 text-text-secondary transition hover:bg-foreground/5 hover:text-text-primary"
-                    aria-label={isExpanded ? "Collapse" : "Expand"}
-                  >
-                    {isExpanded ? (
-                      <ChevronDown className="size-4" aria-hidden />
-                    ) : (
-                      <ChevronRight className="size-4" aria-hidden />
-                    )}
-                  </button>
-
-                  <div
-                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-2"
-                    onClick={() => toggleExpand(dir.path)}
-                  >
-                    <Code2
-                      className="size-4 shrink-0 text-alpha"
-                      aria-hidden
-                    />
-                    <span className="truncate text-sm font-medium text-text-primary">
-                      {dir.meta?.name || dir.name}
-                    </span>
-                    {dir.meta?.tags?.length ? (
-                      <div className="flex gap-1">
-                        {dir.meta.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-full bg-alpha/10 px-2 py-0.5 text-[10px] font-medium text-alpha"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <span className="shrink-0 text-xs font-light tabular-nums text-text-secondary">
-                    {formatDateTime(dir.last_modified)}
-                  </span>
-
-                  <div className="flex shrink-0 items-center gap-1">
-                    <button
-                      type="button"
-                      aria-label={`Delete ${dir.name}`}
-                      disabled={busyAction !== null}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-foreground/12 text-text-secondary transition hover:border-risk/40 hover:text-risk disabled:opacity-40"
-                      onClick={() => onDeleteDir(dir.path)}
-                    >
-                      <Trash2 className="size-3.5" aria-hidden />
-                    </button>
-                  </div>
-                </div>
-
-                {isExpanded ? (
-                  <div className="border-t border-foreground/6 px-4 py-3">
-                    <div className="flex flex-col gap-1">
-                      {pyFiles.map((file) => (
-                        <div
-                          key={file.path}
-                          className="group flex items-center gap-2 rounded-xl px-3 py-2 transition hover:bg-foreground/5"
-                        >
-                          <FileCode2
-                            className="size-4 shrink-0 text-text-secondary"
-                            aria-hidden
-                          />
-                          <button
-                            type="button"
-                            className="min-w-0 flex-1 text-left text-sm font-light text-text-primary hover:text-alpha"
-                            onClick={() => onOpenFile(file.path)}
-                          >
-                            <span className="font-mono-code text-[12px]">
-                              {file.name}
-                            </span>
-                          </button>
-                          <span className="shrink-0 text-xs font-light tabular-nums text-text-secondary">
-                            {formatDateTime(file.last_modified)}
-                          </span>
-                          <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
-                            <button
-                              type="button"
-                              aria-label={`Copy import for ${file.name}`}
-                              title="Copy import snippet"
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-text-secondary transition hover:text-alpha"
-                              onClick={() => void onCopyImport(file.path)}
-                            >
-                              <ClipboardCopy
-                                className="size-3.5"
-                                aria-hidden
-                              />
-                            </button>
-                            <button
-                              type="button"
-                              aria-label={`Delete ${file.name}`}
-                              disabled={busyAction !== null}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-text-secondary transition hover:text-risk disabled:opacity-40"
-                              onClick={() => onDeleteFile(file.path)}
-                            >
-                              <Trash2 className="size-3.5" aria-hidden />
-                            </button>
-                          </div>
-                          {copiedPath === file.path ? (
-                            <span className="text-xs font-medium text-alpha">
-                              Copied!
-                            </span>
-                          ) : null}
-                        </div>
-                      ))}
-
-                      {otherFiles.map((file) => (
-                        <div
-                          key={file.path}
-                          className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-light text-text-secondary"
-                        >
-                          <FileCode2 className="size-4 shrink-0" aria-hidden />
-                          <span className="font-mono-code text-[12px]">
-                            {file.name}
-                          </span>
-                        </div>
-                      ))}
-
-                      {newFileDir === dir.path ? (
-                        <div className="flex items-center gap-2 px-3 py-2">
-                          <input
-                            value={newFileName}
-                            onChange={(e) => setNewFileName(e.target.value)}
-                            placeholder="new_module.py"
-                            className="min-w-[140px] flex-1 rounded-full border border-foreground/12 bg-background/80 px-3 py-1.5 text-sm font-light text-text-primary outline-none ring-alpha/30 focus:ring-2"
-                            aria-label="New file name"
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter")
-                                void onAddFile(dir.path);
-                              if (e.key === "Escape") {
-                                setNewFileDir(null);
-                                setNewFileName("");
-                              }
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => void onAddFile(dir.path)}
-                            disabled={busyAction !== null || !newFileName.trim()}
-                            className="rounded-full bg-alpha px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-50"
-                          >
-                            Add
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setNewFileDir(null);
-                              setNewFileName("");
-                            }}
-                            className="rounded-full border border-foreground/12 px-3 py-1.5 text-xs font-medium text-text-secondary transition hover:text-text-primary"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setNewFileDir(dir.path)}
-                          disabled={busyAction !== null}
-                          className="mt-1 flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-text-secondary transition hover:bg-foreground/5 hover:text-text-primary disabled:opacity-40"
-                        >
-                          <Plus className="size-3.5" aria-hidden />
-                          Add file
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
+        <StrategyLibraryDirectoryList
+          items={items}
+          expanded={expanded}
+          busyAction={busyAction}
+          copiedPath={copiedPath}
+          newFileDir={newFileDir}
+          newFileName={newFileName}
+          setNewFileName={setNewFileName}
+          setNewFileDir={setNewFileDir}
+          toggleExpand={toggleExpand}
+          onDeleteDir={onDeleteDir}
+          onDeleteFile={onDeleteFile}
+          onOpenFile={onOpenFile}
+          onCopyImport={onCopyImport}
+          onAddFile={onAddFile}
+        />
       ) : null}
 
       <p className="text-xs font-light text-text-secondary">
@@ -472,19 +130,8 @@ export function StrategyLibraryPanel() {
         .
       </p>
 
-      <StrategyConfirmDialog
-        open={deleteDialog !== null}
-        title={
-          deleteDialog?.kind === "dir"
-            ? "Delete strategy?"
-            : "Delete file?"
-        }
-        message={
-          deleteDialog?.kind === "dir"
-            ? "This will remove the strategy directory and all its files. This cannot be undone."
-            : "This file will be removed. This cannot be undone."
-        }
-        confirmLabel="Delete"
+      <StrategyDeleteDialog
+        deleteDialog={deleteDialog}
         onCancel={() => setDeleteDialog(null)}
         onConfirm={() => void runPendingDelete()}
       />
