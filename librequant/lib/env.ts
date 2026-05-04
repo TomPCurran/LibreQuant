@@ -88,11 +88,6 @@ export function readNodeEnv(): "development" | "production" | "test" {
   return "development";
 }
 
-/** Used by `instrumentation.ts` (must not import `server-only` modules). */
-export function isNodeNextRuntime(): boolean {
-  return process.env.NEXT_RUNTIME === "nodejs";
-}
-
 const publicEnvInputSchema = z.object({
   NEXT_PUBLIC_JUPYTER_BASE_URL: z.preprocess(
     (v) => emptyToUndefined(v) ?? DEFAULT_JUPYTER_BASE_URL,

@@ -5,7 +5,7 @@
  * Does not remove all terminal output (Next may still log once); see README troubleshooting.
  */
 
-import { publicEnv } from "@/lib/env";
+import { publicEnv } from "./env";
 
 function isBenignDevSocketError(reason: unknown): boolean {
   if (reason == null || typeof reason !== "object") return false;

@@ -68,7 +68,7 @@ The following substitutes for a non-existent `librequant/src/` tree: three roots
 | [`librequant/lib/data-sources-status-context.tsx`](librequant/lib/data-sources-status-context.tsx) | React context for data-source credential presence / polling hooks. |
 | [`librequant/lib/data-sources/constants.ts`](librequant/lib/data-sources/constants.ts) | UI constants for data sources feature. |
 | [`librequant/lib/data-sources/custom-env-key.ts`](librequant/lib/data-sources/custom-env-key.ts) | Validation for custom env keys; `NOTEBOOK_DATABASE_URL_KEY` deprecated alias (lines 42–43). |
-| [`librequant/lib/dev-server-socket-noise.ts`](librequant/lib/dev-server-socket-noise.ts) | Dev-server socket noise handlers (loaded from [`librequant/instrumentation.ts`](librequant/instrumentation.ts)). |
+| [`librequant/lib/dev-server-socket-noise.ts`](librequant/lib/dev-server-socket-noise.ts) | Dev-server socket noise handlers (registered when [`librequant/next.config.ts`](librequant/next.config.ts) loads in development). |
 | [`librequant/lib/ensure-webpack-public-path.ts`](librequant/lib/ensure-webpack-public-path.ts) | Ensures webpack public path for dynamic imports (JupyterLab styles). |
 | [`librequant/lib/env.ts`](librequant/lib/env.ts) | Browser-safe env: Jupyter base URL/token, MLflow UI URL, strategy paths; `DEFAULT_LOCAL_JUPYTER_TOKEN` (line 54). |
 | [`librequant/lib/experiments/experiments-url.ts`](librequant/lib/experiments/experiments-url.ts) | URL helpers for experiments route query params. |
@@ -171,13 +171,12 @@ The following substitutes for a non-existent `librequant/src/` tree: three roots
 | [`librequant/scripts/dev-stack.mjs`](librequant/scripts/dev-stack.mjs) | `npm run dev:stack`: compose up + wait for Jupyter + `next dev`. |
 | [`librequant/scripts/prod-stack.mjs`](librequant/scripts/prod-stack.mjs) | `npm run prod:stack`: compose + production Next server. |
 | [`librequant/types/jupyterlab-style-modules.d.ts`](librequant/types/jupyterlab-style-modules.d.ts) | Ambient module declarations for JupyterLab style imports. |
-| [`librequant/next.config.ts`](librequant/next.config.ts) | Next config: CSP headers, Jupyter/MLflow origins, `transpilePackages`, `reactStrictMode: false` (commented rationale). |
+| [`librequant/next.config.ts`](librequant/next.config.ts) | Next config: CSP headers, Jupyter/MLflow origins, `transpilePackages`, `reactStrictMode: false` (commented rationale); in dev, registers socket noise handlers (Node-only). |
 | [`librequant/tsconfig.json`](librequant/tsconfig.json) | TypeScript project: `strict: true`, `skipLibCheck: true`, path alias `@/*`. |
 | [`librequant/tailwind.config.ts`](librequant/tailwind.config.ts) | Tailwind v4 configuration. |
 | [`librequant/postcss.config.mjs`](librequant/postcss.config.mjs) | PostCSS pipeline for Tailwind. |
 | [`librequant/eslint.config.mjs`](librequant/eslint.config.mjs) | Flat ESLint config: **only** spreads `eslint-config-next` (see dependency notes). |
 | [`librequant/vitest.config.ts`](librequant/vitest.config.ts) | Vitest runner configuration. |
-| [`librequant/instrumentation.ts`](librequant/instrumentation.ts) | Next.js `register()` hook; loads dev socket noise handlers on Node runtime. |
 
 ### Repository root, Docker, Python package, docs
 

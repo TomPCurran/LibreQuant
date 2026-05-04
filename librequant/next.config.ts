@@ -1,9 +1,20 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
+import { installDevServerSocketNoiseHandlers } from "./lib/dev-server-socket-noise";
 import { publicEnv } from "./lib/env";
 
+/** Node-only (config load). Avoid `instrumentation.ts`, which is also bundled for Edge and flags `process.prependListener`. */
+if (process.env.NODE_ENV === "development") {
+  installDevServerSocketNoiseHandlers();
+}
+
 const appDir = path.dirname(fileURLToPath(import.meta.url));
+
+/** Force Tailwind resolution into this package's node_modules when a parent dir (or ~/package.json workspaces) confuses the resolver. */
+function nm(pkg: string): string {
+  return path.join(appDir, "node_modules", pkg);
+}
 
 const jupyterOrigin = publicEnv.jupyterBaseUrlNormalized;
 const jupyterWs = jupyterOrigin.replace(/^http/, "ws");
@@ -40,6 +51,10 @@ const nextConfig: NextConfig = {
   // Lock workspace to this app so Turbopack does not pick a parent lockfile (e.g. home) and fail to resolve tailwindcss.
   turbopack: {
     root: appDir,
+    resolveAlias: {
+      tailwindcss: nm("tailwindcss"),
+      "@tailwindcss/postcss": nm("@tailwindcss/postcss"),
+    },
   },
   transpilePackages: ["@datalayer/jupyter-react"],
   async headers() {

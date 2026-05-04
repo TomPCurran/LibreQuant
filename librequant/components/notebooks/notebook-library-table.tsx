@@ -5,8 +5,9 @@ import { formatDateTime } from "@/lib/format-date-time";
 import { notebookStemFromPath } from "@/lib/jupyter-paths";
 import type { NotebookListItem } from "@/lib/types/notebook";
 
-export const NOTEBOOK_LIBRARY_DRAG_MIME =
-  "application/x-librequant-notebook-path";
+import { NOTEBOOK_LIBRARY_DRAG_MIME } from "./notebook-library-dnd";
+
+export { NOTEBOOK_LIBRARY_DRAG_MIME };
 
 const NotebookRow = memo(function NotebookRow({
   row,

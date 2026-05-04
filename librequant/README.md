@@ -132,7 +132,7 @@ This runs `docker compose up -d` from the repo root, waits until port **8888** a
 
 ### Dev terminal: `socket hang up` / `ECONNRESET`
 
-Next.js dev (especially with Turbopack) or aborted browser connections can occasionally log **`Error: socket hang up`** with code **`ECONNRESET`**. That usually means a TCP connection closed while a request or HMR channel was in flight (tab refresh, navigation between routes, or Jupyter reconnecting). It is not the same as a bug in your notebook code. [`instrumentation.ts`](instrumentation.ts) installs dev-only handlers so these errors are less likely to tear down the process; you may still see a single log line from Next. If the app keeps working, you can ignore it.
+Next.js dev (especially with Turbopack) or aborted browser connections can occasionally log **`Error: socket hang up`** with code **`ECONNRESET`**. That usually means a TCP connection closed while a request or HMR channel was in flight (tab refresh, navigation between routes, or Jupyter reconnecting). It is not the same as a bug in your notebook code. [`next.config.ts`](next.config.ts) installs dev-only handlers (when the config loads in Node) so these errors are less likely to tear down the process; you may still see a single log line from Next. If the app keeps working, you can ignore it.
 
 ### Jupyter log: `404` / “Kernel does not exist”
 
@@ -203,7 +203,7 @@ Full detail: **[SECURITY.md](SECURITY.md)** (trusted machine / trusted browser, 
 | [`scripts/dev-stack.mjs`](scripts/dev-stack.mjs)   | `npm run dev:stack`: Docker up, TCP + HTTP readiness, then `npm run dev`.                                                                                                                                                                          |
 | [`scripts/prod-stack.mjs`](scripts/prod-stack.mjs) | `npm run prod:stack`: same, then `npm run build` + `npm run start`.                                                                                                                                                                                |
 | [`docker-compose.yml`](../docker-compose.yml)      | At repository root: Postgres, MLflow, custom Jupyter image, workspace bind mount, loopback ports **5432** / **5000** / **8888** (see [`env.docker.example`](../env.docker.example)).                                                              |
-| [`instrumentation.ts`](instrumentation.ts)         | Next.js instrumentation (dev-only noise handling for server sockets).                                                                                                                                                                              |
+| [`next.config.ts`](next.config.ts) (dev)          | Registers dev-only socket error handlers in Node (avoids Edge `instrumentation` bundling).                                                                                                                                                        |
 
 ### Jupyter integration (high level)
 
