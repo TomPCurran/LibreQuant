@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+import { isMlflowProxyLoopbackRequired } from "@/lib/server-env";
+
 /** User-facing message when MLflow cannot be reached (timeout, network, DNS). */
 export const MLFLOW_UNREACHABLE =
   "MLflow server unreachable. Start Docker Compose (mlflow service on 127.0.0.1:5000) or set MLFLOW_TRACKING_URI in .env.local.";
@@ -45,7 +47,7 @@ export async function mlflowUpstreamJsonError(res: Response): Promise<NextRespon
 export function mlflowProxyForbiddenIfRequired(
   request: NextRequest,
 ): NextResponse | null {
-  if (process.env.MLFLOW_PROXY_REQUIRE_LOOPBACK !== "1") return null;
+  if (!isMlflowProxyLoopbackRequired()) return null;
   const xff = request.headers.get("x-forwarded-for");
   const realIp = request.headers.get("x-real-ip");
   const candidate = xff?.split(",")[0]?.trim() || realIp?.trim();

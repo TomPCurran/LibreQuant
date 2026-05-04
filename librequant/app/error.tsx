@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+import { publicEnv } from "@/lib/env";
+
 export default function Error({
   error,
   reset,
@@ -13,7 +15,7 @@ export default function Error({
     console.error("[librequant] Route error:", error);
   }, [error]);
 
-  const isDev = process.env.NODE_ENV === "development";
+  const isDev = publicEnv.nodeEnv === "development";
 
   return (
     <div className="min-h-screen px-4 py-10 text-foreground">

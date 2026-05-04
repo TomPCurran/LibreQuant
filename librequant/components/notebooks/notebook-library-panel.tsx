@@ -6,29 +6,16 @@ import { useRouter } from "next/navigation";
 import {
   ChevronDown,
   ChevronRight,
-  ExternalLink,
-  FileUp,
   FolderOpen,
-  FolderPlus,
   Loader2,
-  Pencil,
-  Plus,
   Trash2,
 } from "lucide-react";
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { getNotebookLibraryRoot } from "@/lib/env";
 import {
   createNotebookFolder,
   createUntitledNotebook,
   deleteNotebookPath,
-  listNotebookFolders,
   moveNotebookToFolder,
   renameNotebookPath,
   uploadNotebookFile,
@@ -37,211 +24,33 @@ import type { NotebookFolderItem, NotebookListItem } from "@/lib/types/notebook"
 import { initialNotebook } from "@/lib/initial-notebook";
 import { isNotebookContent } from "@/lib/notebook-local-storage";
 import { notebookStemFromPath } from "@/lib/jupyter-paths";
-import { ONBOARDING_NOTEBOOKS } from "@/lib/notebook-onboarding";
-import { formatDateTime } from "@/lib/format-date-time";
 import { useJupyterServiceManager } from "@/lib/use-jupyter-service-manager";
 
+import {
+  NotebookDeleteDialog,
+  type NotebookDeleteTarget,
+} from "./notebook-delete-dialog";
+import { NotebookLibraryToolbar } from "./notebook-library-toolbar";
+import {
+  NotebookTable,
+  NOTEBOOK_LIBRARY_DRAG_MIME,
+} from "./notebook-library-table";
+import { useNotebookLibrary } from "./use-notebook-library";
+
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
-
-const DRAG_MIME = "application/x-librequant-notebook-path";
-
-const NotebookRow = memo(function NotebookRow({
-  row,
-  busyAction,
-  renamePath,
-  renameValue,
-  setRenameValue,
-  onOpen,
-  startRename,
-  cancelRename,
-  commitRename,
-  onDelete,
-}: {
-  row: NotebookListItem;
-  busyAction: string | null;
-  renamePath: string | null;
-  renameValue: string;
-  setRenameValue: (v: string) => void;
-  onOpen: (path: string) => void;
-  startRename: (path: string) => void;
-  cancelRename: () => void;
-  commitRename: () => void;
-  onDelete: (path: string) => void;
-}) {
-  const onDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData(DRAG_MIME, row.path);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  return (
-    <tr
-      className="glass cursor-grab rounded-3xl active:cursor-grabbing"
-      draggable
-      onDragStart={onDragStart}
-    >
-      <td className="rounded-l-3xl px-4 py-4 align-middle">
-        {renamePath === row.path ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              value={renameValue}
-              onChange={(ev) => setRenameValue(ev.target.value)}
-              className="min-w-[160px] flex-1 rounded-full border border-foreground/12 bg-background/80 px-3 py-2 text-sm font-light text-text-primary outline-none ring-alpha/30 focus:ring-2"
-              aria-label="New notebook name"
-              autoFocus
-              onKeyDown={(ev) => {
-                if (ev.key === "Enter") void commitRename();
-                if (ev.key === "Escape") cancelRename();
-              }}
-            />
-            <button
-              type="button"
-              className="rounded-full bg-alpha px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90"
-              onClick={() => void commitRename()}
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              className="rounded-full border border-foreground/12 px-3 py-1.5 text-xs font-medium text-text-secondary transition hover:text-text-primary"
-              onClick={cancelRename}
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <span className="text-sm font-light text-text-primary">
-            {notebookStemFromPath(row.path)}
-          </span>
-        )}
-      </td>
-      <td className="px-4 py-4 align-middle text-sm font-light tabular-nums text-text-secondary">
-        {formatDateTime(row.created)}
-      </td>
-      <td className="px-4 py-4 align-middle text-sm font-light tabular-nums text-text-secondary">
-        {formatDateTime(row.last_modified)}
-      </td>
-      <td className="rounded-r-3xl px-4 py-4 align-middle text-right">
-        <div className="inline-flex flex-wrap items-center justify-end gap-1">
-          <button
-            type="button"
-            aria-label={`Open ${row.name}`}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-foreground/12 text-text-secondary transition hover:border-alpha/35 hover:text-alpha"
-            onClick={() => onOpen(row.path)}
-          >
-            <ExternalLink className="size-4" aria-hidden />
-          </button>
-          <button
-            type="button"
-            aria-label={`Rename ${row.name}`}
-            disabled={busyAction !== null}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-foreground/12 text-text-secondary transition hover:border-alpha/35 hover:text-alpha disabled:opacity-40"
-            onClick={() => startRename(row.path)}
-          >
-            <Pencil className="size-4" aria-hidden />
-          </button>
-          <button
-            type="button"
-            aria-label={`Delete ${row.name}`}
-            disabled={busyAction !== null}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-foreground/12 text-text-secondary transition hover:border-risk/40 hover:text-risk disabled:opacity-40"
-            onClick={() => void onDelete(row.path)}
-          >
-            <Trash2 className="size-4" aria-hidden />
-          </button>
-        </div>
-      </td>
-    </tr>
-  );
-});
-
-const NotebookTable = memo(function NotebookTable({
-  notebooks,
-  caption,
-  busyAction,
-  renamePath,
-  renameValue,
-  setRenameValue,
-  onOpen,
-  startRename,
-  cancelRename,
-  commitRename,
-  onDelete,
-}: {
-  notebooks: NotebookListItem[];
-  caption: string;
-  busyAction: string | null;
-  renamePath: string | null;
-  renameValue: string;
-  setRenameValue: (v: string) => void;
-  onOpen: (path: string) => void;
-  startRename: (path: string) => void;
-  cancelRename: () => void;
-  commitRename: () => void;
-  onDelete: (path: string) => void;
-}) {
-  if (notebooks.length === 0) return null;
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] border-separate border-spacing-y-2">
-        <caption className="sr-only">{caption}</caption>
-        <thead>
-          <tr>
-            <th
-              scope="col"
-              className="px-3 py-2 text-left text-xs font-medium uppercase tracking-[0.12em] text-text-secondary"
-            >
-              Name
-            </th>
-            <th
-              scope="col"
-              className="px-3 py-2 text-left text-xs font-medium uppercase tracking-[0.12em] text-text-secondary"
-            >
-              Created
-            </th>
-            <th
-              scope="col"
-              className="px-3 py-2 text-left text-xs font-medium uppercase tracking-[0.12em] text-text-secondary"
-            >
-              Last updated
-            </th>
-            <th
-              scope="col"
-              className="px-3 py-2 text-right text-xs font-medium uppercase tracking-[0.12em] text-text-secondary"
-            >
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {notebooks.map((row) => (
-            <NotebookRow
-              key={row.path}
-              row={row}
-              busyAction={busyAction}
-              renamePath={renamePath}
-              renameValue={renameValue}
-              setRenameValue={setRenameValue}
-              onOpen={onOpen}
-              startRename={startRename}
-              cancelRename={cancelRename}
-              commitRename={commitRename}
-              onDelete={onDelete}
-            />
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-});
 
 export function NotebookLibraryPanel() {
   const router = useRouter();
   const libraryRoot = getNotebookLibraryRoot();
   const { serviceManager, error: mgrError } = useJupyterServiceManager();
-  const [folders, setFolders] = useState<NotebookFolderItem[]>([]);
-  const [listError, setListError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    folders,
+    setFolders,
+    listError,
+    setListError,
+    loading,
+    refresh,
+  } = useNotebookLibrary(libraryRoot, serviceManager);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [renamePath, setRenamePath] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -249,35 +58,13 @@ export function NotebookLibraryPanel() {
   const [newFolderName, setNewFolderName] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<NotebookDeleteTarget>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const renamePathRef = useRef(renamePath);
   const renameValueRef = useRef(renameValue);
   renamePathRef.current = renamePath;
   renameValueRef.current = renameValue;
-
-  const refresh = useCallback(async () => {
-    if (!serviceManager) return;
-    setListError(null);
-    setLoading(true);
-    try {
-      const list = await listNotebookFolders(
-        serviceManager.contents,
-        libraryRoot,
-      );
-      setFolders(list);
-    } catch (e) {
-      setListError(
-        e instanceof Error ? e.message : "Failed to list notebooks.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [libraryRoot, serviceManager]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
 
   const totalNotebooks = folders.reduce(
     (sum, f) => sum + f.notebooks.length,
@@ -401,46 +188,33 @@ export function NotebookLibraryPanel() {
     } finally {
       setBusyAction(null);
     }
-  }, [serviceManager, libraryRoot, refresh, router]);
+  }, [serviceManager, libraryRoot, refresh, router, setListError]);
 
-  const onDelete = useCallback(
-    async (path: string) => {
-      if (!serviceManager) return;
-      if (!window.confirm("Delete this notebook? This cannot be undone.")) return;
-      setBusyAction("delete");
-      try {
-        await deleteNotebookPath(serviceManager.contents, libraryRoot, path);
-        await refresh();
-      } catch (e) {
-        setListError(e instanceof Error ? e.message : "Delete failed.");
-      } finally {
-        setBusyAction(null);
-      }
-    },
-    [serviceManager, libraryRoot, refresh],
-  );
+  const requestDeleteNotebook = useCallback((path: string) => {
+    setDeleteTarget({ kind: "notebook", path });
+  }, []);
 
-  const onDeleteFolder = useCallback(
-    async (folderPath: string) => {
-      if (!serviceManager) return;
-      if (
-        !window.confirm(
-          "Delete this folder and all notebooks inside it? This cannot be undone.",
-        )
-      )
-        return;
-      setBusyAction("delete");
-      try {
-        await deleteNotebookPath(serviceManager.contents, libraryRoot, folderPath);
-        await refresh();
-      } catch (e) {
-        setListError(e instanceof Error ? e.message : "Delete failed.");
-      } finally {
-        setBusyAction(null);
-      }
-    },
-    [serviceManager, libraryRoot, refresh],
-  );
+  const requestDeleteFolder = useCallback((folderPath: string) => {
+    setDeleteTarget({ kind: "folder", path: folderPath });
+  }, []);
+
+  const runPendingDelete = useCallback(async () => {
+    if (!serviceManager || !deleteTarget) return;
+    setBusyAction("delete");
+    try {
+      await deleteNotebookPath(
+        serviceManager.contents,
+        libraryRoot,
+        deleteTarget.path,
+      );
+      await refresh();
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : "Delete failed.");
+    } finally {
+      setBusyAction(null);
+      setDeleteTarget(null);
+    }
+  }, [serviceManager, libraryRoot, refresh, deleteTarget, setListError]);
 
   const onMoveToFolder = useCallback(
     async (notebookPath: string, folderPath: string) => {
@@ -461,7 +235,7 @@ export function NotebookLibraryPanel() {
         setBusyAction(null);
       }
     },
-    [serviceManager, libraryRoot, refresh],
+    [serviceManager, libraryRoot, refresh, setListError],
   );
 
   const onMoveToRoot = useCallback(
@@ -482,11 +256,11 @@ export function NotebookLibraryPanel() {
         setBusyAction(null);
       }
     },
-    [serviceManager, libraryRoot, refresh],
+    [serviceManager, libraryRoot, refresh, setListError],
   );
 
   const handleFolderDragOver = (e: React.DragEvent, folderPath: string) => {
-    if (e.dataTransfer.types.includes(DRAG_MIME)) {
+    if (e.dataTransfer.types.includes(NOTEBOOK_LIBRARY_DRAG_MIME)) {
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
       setDragOverFolder(folderPath);
@@ -502,7 +276,7 @@ export function NotebookLibraryPanel() {
   const handleFolderDrop = (e: React.DragEvent, folderPath: string) => {
     e.preventDefault();
     setDragOverFolder(null);
-    const notebookPath = e.dataTransfer.getData(DRAG_MIME);
+    const notebookPath = e.dataTransfer.getData(NOTEBOOK_LIBRARY_DRAG_MIME);
     if (!notebookPath) return;
     const parentDir = notebookPath.substring(
       0,
@@ -513,7 +287,7 @@ export function NotebookLibraryPanel() {
   };
 
   const handleRootDragOver = (e: React.DragEvent) => {
-    if (e.dataTransfer.types.includes(DRAG_MIME)) {
+    if (e.dataTransfer.types.includes(NOTEBOOK_LIBRARY_DRAG_MIME)) {
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
       setDragOverFolder("__root__");
@@ -529,7 +303,7 @@ export function NotebookLibraryPanel() {
   const handleRootDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOverFolder(null);
-    const notebookPath = e.dataTransfer.getData(DRAG_MIME);
+    const notebookPath = e.dataTransfer.getData(NOTEBOOK_LIBRARY_DRAG_MIME);
     if (!notebookPath) return;
     const parentDir = notebookPath.substring(
       0,
@@ -550,8 +324,10 @@ export function NotebookLibraryPanel() {
 
   const commitRenameFire = useCallback(() => void commitRename(), [commitRename]);
   const onDeleteFire = useCallback(
-    (path: string) => void onDelete(path),
-    [onDelete],
+    (path: string) => {
+      requestDeleteNotebook(path);
+    },
+    [requestDeleteNotebook],
   );
 
   const tableProps = useMemo(
@@ -585,110 +361,20 @@ export function NotebookLibraryPanel() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <p className="text-sm font-light leading-relaxed text-text-secondary">
-          Files live under{" "}
-          <code className="font-mono-code text-[12px] text-text-primary">
-            {libraryRoot}
-          </code>{" "}
-          on your Jupyter server (persisted when using Docker compose). With Compose,           demo
-          notebooks from the repository —{" "}
-          {ONBOARDING_NOTEBOOKS.map((name, i) => (
-            <span key={name}>
-              {i > 0 ? " and " : null}
-              <code className="font-mono-code text-[12px]">{name}</code>
-            </span>
-          ))}{" "}
-          — are
-          copied into this folder on Jupyter container start when those files are not already
-          present (restart the <code className="font-mono-code text-[12px]">jupyter</code>{" "}
-          service to pick them up).
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void onNewNotebook()}
-            disabled={!serviceManager || busyAction !== null}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-alpha px-5 py-2.5 text-sm font-medium text-white shadow-md shadow-alpha/20 transition hover:opacity-90 disabled:opacity-50"
-          >
-            {busyAction === "new" ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-            ) : (
-              <Plus className="size-4" aria-hidden />
-            )}
-            New Notebook
-          </button>
-          <button
-            type="button"
-            onClick={onUploadClick}
-            disabled={!serviceManager || busyAction !== null}
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-foreground/12 bg-foreground/5 px-5 py-2.5 text-sm font-medium text-text-primary transition hover:bg-foreground/[0.07] disabled:opacity-50"
-          >
-            {busyAction === "upload" ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-            ) : (
-              <FileUp className="size-4" aria-hidden />
-            )}
-            Upload
-          </button>
-          {showNewFolder ? (
-            <div className="flex items-center gap-2">
-              <input
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                placeholder="folder_name"
-                className="min-w-[140px] rounded-full border border-foreground/12 bg-background/80 px-3 py-2 text-sm font-light text-text-primary outline-none ring-alpha/30 focus:ring-2"
-                aria-label="New folder name"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void onNewFolder();
-                  if (e.key === "Escape") {
-                    setShowNewFolder(false);
-                    setNewFolderName("");
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => void onNewFolder()}
-                disabled={busyAction !== null || !newFolderName.trim()}
-                className="rounded-full bg-alpha px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
-              >
-                Create
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowNewFolder(false);
-                  setNewFolderName("");
-                }}
-                className="rounded-full border border-foreground/12 px-3 py-2 text-sm font-medium text-text-secondary transition hover:text-text-primary"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowNewFolder(true)}
-              disabled={!serviceManager || busyAction !== null}
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-foreground/12 bg-foreground/5 px-5 py-2.5 text-sm font-medium text-text-primary transition hover:bg-foreground/[0.07] disabled:opacity-50"
-            >
-              <FolderPlus className="size-4" aria-hidden />
-              New Folder
-            </button>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".ipynb,application/x-ipynb+json,application/json"
-            className="sr-only"
-            aria-hidden
-            tabIndex={-1}
-            onChange={(ev) => void onFileChange(ev)}
-          />
-        </div>
-      </div>
+      <NotebookLibraryToolbar
+        libraryRoot={libraryRoot}
+        serviceManager={serviceManager}
+        busyAction={busyAction}
+        showNewFolder={showNewFolder}
+        setShowNewFolder={setShowNewFolder}
+        newFolderName={newFolderName}
+        setNewFolderName={setNewFolderName}
+        onNewNotebook={onNewNotebook}
+        onNewFolder={onNewFolder}
+        onUploadClick={onUploadClick}
+        fileInputRef={fileInputRef}
+        onFileChange={onFileChange}
+      />
 
       {combinedError ? (
         <div
@@ -809,7 +495,7 @@ export function NotebookLibraryPanel() {
                     aria-label={`Delete folder ${folder.name}`}
                     disabled={busyAction !== null}
                     className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-foreground/12 text-text-secondary transition hover:border-risk/40 hover:text-risk disabled:opacity-40"
-                    onClick={() => void onDeleteFolder(folder.path)}
+                    onClick={() => requestDeleteFolder(folder.path)}
                   >
                     <Trash2 className="size-3.5" aria-hidden />
                   </button>
@@ -846,6 +532,12 @@ export function NotebookLibraryPanel() {
         </Link>
         .
       </p>
+
+      <NotebookDeleteDialog
+        target={deleteTarget}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => void runPendingDelete()}
+      />
     </div>
   );
 }

@@ -1,13 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import {
-  isUnreachableFetchError,
-  mlflowProxyForbiddenIfRequired,
-  mlflowUnreachableResponse,
-  mlflowUpstreamJsonError,
-} from "@/lib/mlflow-http";
+import { mlflowUpstreamJsonError } from "@/lib/mlflow-http";
 import { mapRestRunToMlflowRun } from "@/lib/mlflow-map-run";
-import { fetchMlflow, getMlflowServerBaseUrl } from "@/lib/mlflow-server";
+import { withMlflowProxy } from "@/lib/mlflow-route-handler";
+import { fetchMlflow } from "@/lib/mlflow-server";
 import type {
   MlflowExperimentDetail,
   MlflowRestRun,
@@ -18,9 +14,6 @@ import type {
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const denied = mlflowProxyForbiddenIfRequired(request);
-  if (denied) return denied;
-
   const experimentName = request.nextUrl.searchParams
     .get("experiment_name")
     ?.trim();
@@ -37,9 +30,7 @@ export async function GET(request: NextRequest) {
     ? Math.min(500, Math.max(1, Number.parseInt(maxRaw, 10) || 50))
     : 50;
 
-  const base = getMlflowServerBaseUrl();
-
-  try {
+  return withMlflowProxy(request, async (base) => {
     const expUrl = new URL(`${base}/api/2.0/mlflow/experiments/get-by-name`);
     expUrl.searchParams.set("experiment_name", experimentName);
     const expRes = await fetchMlflow(expUrl);
@@ -75,13 +66,5 @@ export async function GET(request: NextRequest) {
     const runs = runsRaw.map((r) => mapRestRunToMlflowRun(r, experimentName));
     const body: MlflowRunsSearchResponse = { runs };
     return NextResponse.json(body);
-  } catch (e) {
-    if (isUnreachableFetchError(e)) {
-      return mlflowUnreachableResponse();
-    }
-    return NextResponse.json(
-      { error: "Unexpected error", detail: String(e) },
-      { status: 500 },
-    );
-  }
+  });
 }

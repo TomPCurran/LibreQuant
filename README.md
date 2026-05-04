@@ -1,62 +1,122 @@
-# 📈 LibreQuant
+# LibreQuant
 
-**The Open-Source Workbench for Algorithmic Alpha.**
+![CI](https://github.com/TomPCurran/LibreQuant/actions/workflows/ci.yml/badge.svg)
 
-LibreQuant is a local-first, reactive research environment designed to bridge the gap between fragmented Python research (Jupyter) and production-ready execution infrastructure.
+Local-first workbench for algorithmic trading research — Jupyter notebooks, strategy editing, MLflow experiments, all in one Docker-powered UI.
 
-Designed for the "Data-First" Quant, LibreQuant uses Abstract Syntax Tree (AST) discovery to turn static Python strategy files into dynamic, interactive workbanks in under 100ms.
+## Screenshot
 
-[Project Page](https://TomPCurran.github.io/LibreQuant/) | [App developer docs](librequant/README.md) | [License: MIT](LICENSE)
+<!-- Add a screenshot or GIF: save under e.g. screenshots/workbench.png and set src below. -->
 
----
+<img src="screenshots/workbench.png" alt="LibreQuant workbench (placeholder)" width="960" />
 
-## Repository layout
+## Prerequisites
 
-| Path | Role |
-| ---- | ---- |
-| [`librequant/`](librequant/) | Next.js App Router workbench (UI, API routes, Jupyter client) |
-| [`packages/librequant/`](packages/librequant/) | Installable Python package: market data, Parquet cache, optional Postgres and MLflow helpers |
-| [`docker-compose.yml`](docker-compose.yml) | Local stack: **PostgreSQL**, **MLflow** (tracking server + artifact store), **Jupyter** (custom image with the Python package pre-baked) |
-| [`docker/`](docker/) | Jupyter and MLflow image definitions; Postgres init scripts |
+- Docker Desktop (or Docker Engine + Compose plugin)
+- Node.js 18+ and npm
+- Git
 
----
-
-## Developers
-
-The Next.js workbench lives in **`librequant/`**. For setup (Docker Compose stack, Jupyter, env vars, scripts, application routes, source layout, and Jupyter integration overview), see **[`librequant/README.md`](librequant/README.md)** — that file is the canonical guide for building and running the app.
-
-**Documentation index**
-
-| Topic | Location |
-| ----- | -------- |
-| Install, `dev:stack`, production build (`NEXT_PUBLIC_*` at build time), configuration, routes, codebase map | [`librequant/README.md`](librequant/README.md) |
-| Python package (`get_bars`, optional Postgres / MLflow extras) | [`packages/librequant/README.md`](packages/librequant/README.md) |
-| Threat model, Jupyter token, network exposure | [`librequant/SECURITY.md`](librequant/SECURITY.md) |
-| Docker Compose host paths and Postgres / MLflow notes | [`env.docker.example`](env.docker.example) |
-| Environment variables (Next + Jupyter template) | [`librequant/.env.example`](librequant/.env.example) |
-| TypeScript module docs | JSDoc on `librequant/lib/**/*.ts` and key `components/` entry points |
-
----
-
-## 💎 The Philosophy
-
-Traditional trading platforms are often "black boxes" or fragmented scripts. LibreQuant is built on three core pillars inspired by modern Data Science workflows:
-
-1.  **Reactive Research:** Don't just run backtests; "sculpt" your strategy. Parameters are automatically discovered and mapped to UI controls.
-2.  **Zero-Trust Locality:** Your alpha is your moat. LibreQuant runs entirely in your local Docker environment. Your strategies, data, and API keys never leave your machine.
-3.  **Workflow Ownership:** A unified interface for the entire lifecycle: **Idea → Backtest → Live Deployment → Monitoring.**
-
----
-
-## 🚀 Quick Start (Docker)
-
-The fastest way to get the **LibreQuant** workbench running locally is from the `librequant/` app directory: `npm run dev:stack` runs **`docker compose up -d`** at the repo root (PostgreSQL, MLflow, Jupyter), waits for Jupyter, then starts Next.js. The app is **local-first**; see [`librequant/SECURITY.md`](librequant/SECURITY.md) for Jupyter token handling and network exposure.
+## Quick start
 
 ```bash
 git clone https://github.com/TomPCurran/LibreQuant.git
 cd LibreQuant/librequant
-npm install
-npm run dev:stack
+cp .env.example .env.local
+npm install && npm run dev:stack
 ```
 
-Compose publishes **Jupyter** on `127.0.0.1:8888`, **MLflow** on `127.0.0.1:5000`, and **Postgres** on `127.0.0.1:5432` by default (all loopback; see [`env.docker.example`](env.docker.example) to change ports or workspace paths). The script creates `librequant/.env.local` from `.env.example` when missing. For manual steps and full configuration, read [`librequant/README.md`](librequant/README.md).
+Open [http://localhost:3000](http://localhost:3000).
+
+## Architecture
+
+```mermaid
+flowchart LR
+  Browser["Browser localhost:3000"]
+  Next["Next.js App Router + Route Handlers"]
+  Jupyter["Jupyter Server 127.0.0.1:8888 HTTP+WS"]
+  PG[("Postgres 127.0.0.1:5432")]
+  ML["MLflow 127.0.0.1:5000"]
+  Browser <-->|"HTTP same-origin /api/*"| Next
+  Browser <-->|"HTTP+WebSocket Jupyter API token"| Jupyter
+  Next <-->|"server fetch MLFLOW_TRACKING_URI default 127.0.0.1:5000"| ML
+  Jupyter -->|"LIBREQUANT_DATABASE_URL"| PG
+  Jupyter -->|"MLFLOW_TRACKING_URI http://mlflow:5000"| ML
+  ML --> PG
+```
+
+The browser loads the Next.js app on port 3000. Same-origin `/api/*` routes proxy MLflow and other backends. The UI talks to Jupyter over HTTP/WebSocket on loopback; Jupyter and MLflow persist state in Postgres. Inside Docker Compose, Jupyter reaches `postgres` and `mlflow` by service hostname. See [librequant/SECURITY.md](librequant/SECURITY.md) for the local threat model (bind addresses, tokens, `MLFLOW_PROXY_REQUIRE_LOOPBACK`).
+
+## Services & ports
+
+| Service    | Default port | Bound to  |
+| ---------- | ------------ | --------- |
+| Next.js    | 3000         | 0.0.0.0   |
+| Jupyter    | 8888         | 127.0.0.1 |
+| MLflow     | 5000         | 127.0.0.1 |
+| PostgreSQL | 5432         | 127.0.0.1 |
+
+## Environment variables
+
+Create `librequant/.env.local` from [librequant/.env.example](librequant/.env.example). Optional repo-root `.env` can override Compose ports or the Jupyter workspace host — see [env.docker.example](env.docker.example). Do not commit secrets.
+
+## Development commands
+
+Run **npm** from `librequant/`:
+
+| Command | What it does |
+| ------- | ------------ |
+| `npm run predev` | Ensure env + copy Jupyter theme CSS (runs before `dev` via npm hook) |
+| `npm run prebuild` | Same, before `build` |
+| `npm run dev:stack` | Docker Compose (wait for health) + Next dev server |
+| `npm run dev` | Next dev only (expects stack already up) |
+| `npm run build` | Production Next.js build |
+| `npm run start` | Serve production build |
+| `npm run prod` | `build` then `start` |
+| `npm run prod:stack` | Production-style full stack (see script) |
+| `npm run lint` | ESLint |
+| `npm run test` | Vitest (CI) |
+| `npm run test:watch` | Vitest watch |
+| `npm run test:smoke` | Local Docker smoke (needs Next on :3000); not run in CI |
+
+Run **make** from the repo root:
+
+| Command | What it does |
+| ------- | ------------ |
+| `make help` | List targets (default) |
+| `make up` | Same as `npm run dev:stack` in `librequant/` |
+| `make down` | `docker compose down` |
+| `make reset` | `docker compose down -v` (wipes named volumes) |
+| `make logs` | `docker compose logs -f` (follow service logs) |
+| `make lint` | `npm run lint` in `librequant/` |
+| `make test` | `npm run test` in `librequant/` |
+| `make typecheck` | `npx tsc --noEmit` in `librequant/` |
+| `make compose-up` | `docker compose pull && docker compose up -d` (no Next) |
+| `make librequant-build` | `npm ci && npm run build` in `librequant/` |
+| `make prod-build` | `librequant-build` + `compose-up` |
+| `make prod` | `npm ci && npm run prod:stack` in `librequant/` |
+| `make gemini-copy` | Rsync `librequant/` → `gemini_copy/` (AI tooling) |
+| `make clean-gemini-copy` | Remove `gemini_copy/` |
+
+## Project structure
+
+```text
+librequant/          — Next.js application
+  app/               — App Router pages and API routes
+  components/        — React UI components
+  lib/               — Shared TypeScript modules
+packages/librequant/ — Python library (used inside Jupyter)
+docker/              — Dockerfiles for Jupyter, MLflow
+docs/                — Static project page
+```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Security
+
+LibreQuant is designed for local use. Compose services bind to **127.0.0.1** by default (Next dev listens on all interfaces). Details: [librequant/SECURITY.md](librequant/SECURITY.md).
+
+## License
+
+[MIT](LICENSE).

@@ -26,6 +26,13 @@ import {
 } from "@/lib/strategy-contents";
 import type { StrategyDirectoryItem } from "@/lib/types/strategy";
 
+import { StrategyConfirmDialog } from "./strategy-confirm-dialog";
+
+type DeleteDialogState =
+  | { kind: "dir"; path: string }
+  | { kind: "file"; path: string }
+  | null;
+
 export function StrategyLibraryPanel() {
   const router = useRouter();
   const { serviceManager, error: mgrError } = useJupyterServiceManager();
@@ -39,6 +46,7 @@ export function StrategyLibraryPanel() {
   const [newFileDir, setNewFileDir] = useState<string | null>(null);
   const [newFileName, setNewFileName] = useState("");
   const [copiedPath, setCopiedPath] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState>(null);
 
   const refresh = useCallback(async () => {
     if (!serviceManager) return;
@@ -111,36 +119,29 @@ export function StrategyLibraryPanel() {
     }
   };
 
-  const onDeleteDir = async (dirPath: string) => {
-    if (!serviceManager) return;
-    if (!window.confirm("Delete this strategy and all its files? This cannot be undone."))
-      return;
-    setBusyAction("delete");
-    try {
-      await deleteStrategyDirectory(serviceManager.contents, dirPath);
-      await refresh();
-    } catch (e) {
-      setListError(
-        e instanceof Error ? e.message : "Delete failed.",
-      );
-    } finally {
-      setBusyAction(null);
-    }
+  const onDeleteDir = (dirPath: string) => {
+    setDeleteDialog({ kind: "dir", path: dirPath });
   };
 
-  const onDeleteFile = async (filePath: string) => {
-    if (!serviceManager) return;
-    if (!window.confirm("Delete this file? This cannot be undone.")) return;
+  const onDeleteFile = (filePath: string) => {
+    setDeleteDialog({ kind: "file", path: filePath });
+  };
+
+  const runPendingDelete = async () => {
+    if (!serviceManager || !deleteDialog) return;
     setBusyAction("delete");
     try {
-      await deleteStrategyFile(serviceManager.contents, filePath);
+      if (deleteDialog.kind === "dir") {
+        await deleteStrategyDirectory(serviceManager.contents, deleteDialog.path);
+      } else {
+        await deleteStrategyFile(serviceManager.contents, deleteDialog.path);
+      }
       await refresh();
     } catch (e) {
-      setListError(
-        e instanceof Error ? e.message : "Delete failed.",
-      );
+      setListError(e instanceof Error ? e.message : "Delete failed.");
     } finally {
       setBusyAction(null);
+      setDeleteDialog(null);
     }
   };
 
@@ -327,7 +328,7 @@ export function StrategyLibraryPanel() {
                       aria-label={`Delete ${dir.name}`}
                       disabled={busyAction !== null}
                       className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-foreground/12 text-text-secondary transition hover:border-risk/40 hover:text-risk disabled:opacity-40"
-                      onClick={() => void onDeleteDir(dir.path)}
+                      onClick={() => onDeleteDir(dir.path)}
                     >
                       <Trash2 className="size-3.5" aria-hidden />
                     </button>
@@ -376,7 +377,7 @@ export function StrategyLibraryPanel() {
                               aria-label={`Delete ${file.name}`}
                               disabled={busyAction !== null}
                               className="inline-flex h-8 w-8 items-center justify-center rounded-full text-text-secondary transition hover:text-risk disabled:opacity-40"
-                              onClick={() => void onDeleteFile(file.path)}
+                              onClick={() => onDeleteFile(file.path)}
                             >
                               <Trash2 className="size-3.5" aria-hidden />
                             </button>
@@ -470,6 +471,23 @@ export function StrategyLibraryPanel() {
         </Link>
         .
       </p>
+
+      <StrategyConfirmDialog
+        open={deleteDialog !== null}
+        title={
+          deleteDialog?.kind === "dir"
+            ? "Delete strategy?"
+            : "Delete file?"
+        }
+        message={
+          deleteDialog?.kind === "dir"
+            ? "This will remove the strategy directory and all its files. This cannot be undone."
+            : "This file will be removed. This cannot be undone."
+        }
+        confirmLabel="Delete"
+        onCancel={() => setDeleteDialog(null)}
+        onConfirm={() => void runPendingDelete()}
+      />
     </div>
   );
 }

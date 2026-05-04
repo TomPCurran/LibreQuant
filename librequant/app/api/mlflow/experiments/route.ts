@@ -1,12 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import {
-  isUnreachableFetchError,
-  mlflowProxyForbiddenIfRequired,
-  mlflowUnreachableResponse,
-  mlflowUpstreamJsonError,
-} from "@/lib/mlflow-http";
-import { fetchMlflow, getMlflowServerBaseUrl } from "@/lib/mlflow-server";
+import { mlflowUpstreamJsonError } from "@/lib/mlflow-http";
+import { withMlflowProxy } from "@/lib/mlflow-route-handler";
+import { fetchMlflow } from "@/lib/mlflow-server";
 import type {
   MlflowExperimentsSearchResponse,
   MlflowExperimentsSearchRestResponse,
@@ -15,11 +11,7 @@ import type {
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const denied = mlflowProxyForbiddenIfRequired(request);
-  if (denied) return denied;
-
-  const base = getMlflowServerBaseUrl();
-  try {
+  return withMlflowProxy(request, async (base) => {
     const res = await fetchMlflow(`${base}/api/2.0/mlflow/experiments/search`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -37,13 +29,5 @@ export async function GET(request: NextRequest) {
       })),
     };
     return NextResponse.json(body);
-  } catch (e) {
-    if (isUnreachableFetchError(e)) {
-      return mlflowUnreachableResponse();
-    }
-    return NextResponse.json(
-      { error: "Unexpected error", detail: String(e) },
-      { status: 500 },
-    );
-  }
+  });
 }

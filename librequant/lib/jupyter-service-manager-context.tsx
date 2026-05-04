@@ -9,7 +9,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { getPublicJupyterConfig } from "@/lib/env";
+import { getPublicJupyterConfig, publicEnv } from "@/lib/env";
 
 type ServiceManagerContextValue = {
   serviceManager: ServiceManager.IManager | null;
@@ -70,7 +70,7 @@ export function JupyterServiceManagerProvider({
     if (!serviceManager) return;
     let cancelled = false;
     const mode =
-      process.env.NODE_ENV === "production" ? "production" : "development";
+      publicEnv.nodeEnv === "production" ? "production" : "development";
     void serviceManager.ready
       .then(() => {
         if (cancelled) return;

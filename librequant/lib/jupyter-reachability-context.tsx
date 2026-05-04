@@ -17,7 +17,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { getPublicJupyterConfig } from "@/lib/env";
+import { getPublicJupyterConfig, publicEnv } from "@/lib/env";
 import { JupyterServiceManagerProvider } from "@/lib/jupyter-service-manager-context";
 
 const PROBE_INTERVAL_MS = 5000;
@@ -92,7 +92,7 @@ export function JupyterReachabilityStack({ children }: { children: ReactNode }) 
       }
       if (ok && prev !== true) {
         const mode =
-          process.env.NODE_ENV === "production" ? "production" : "development";
+          publicEnv.nodeEnv === "production" ? "production" : "development";
         console.info(
           `[librequant] Jupyter HTTP API reachable [${mode}] ${baseUrl}`,
         );

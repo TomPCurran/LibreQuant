@@ -5,8 +5,10 @@
  * `register` is bundled for Edge and Node. Node-only APIs (e.g. `process.prependListener`) must be
  * loaded via dynamic `import()` only when `NEXT_RUNTIME === 'nodejs'` — see Next.js docs.
  */
+import { isNodeNextRuntime } from "./lib/env";
+
 export async function register(): Promise<void> {
-  if (process.env.NEXT_RUNTIME === "nodejs") {
+  if (isNodeNextRuntime()) {
     const { installDevServerSocketNoiseHandlers } = await import(
       "./lib/dev-server-socket-noise"
     );

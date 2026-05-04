@@ -5,6 +5,8 @@
  * Does not remove all terminal output (Next may still log once); see README troubleshooting.
  */
 
+import { publicEnv } from "@/lib/env";
+
 function isBenignDevSocketError(reason: unknown): boolean {
   if (reason == null || typeof reason !== "object") return false;
   const e = reason as NodeJS.ErrnoException;
@@ -18,7 +20,7 @@ function isBenignDevSocketError(reason: unknown): boolean {
 }
 
 export function installDevServerSocketNoiseHandlers(): void {
-  if (process.env.NODE_ENV === "production") return;
+  if (publicEnv.nodeEnv === "production") return;
 
   process.prependListener("unhandledRejection", (reason) => {
     if (!isBenignDevSocketError(reason)) return;

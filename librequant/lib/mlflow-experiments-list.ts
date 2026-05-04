@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { publicEnv } from "@/lib/env";
 import { formatMlflowApiError } from "@/lib/mlflow-client-error";
 import type { MlflowExperimentSummary } from "@/lib/types/mlflow";
 
@@ -14,13 +15,7 @@ type CacheState = {
  * Poll while at least one component needs the list (sidebar + explorer may both mount).
  * Default 12s; override with `NEXT_PUBLIC_MLFLOW_EXPERIMENTS_POLL_MS` (see `.env.example`).
  */
-const POLL_INTERVAL_MS = (() => {
-  const raw = process.env.NEXT_PUBLIC_MLFLOW_EXPERIMENTS_POLL_MS?.trim();
-  if (!raw) return 12_000;
-  const n = Number.parseInt(raw, 10);
-  if (!Number.isFinite(n) || n < 1000) return 12_000;
-  return n;
-})();
+const POLL_INTERVAL_MS = publicEnv.mlflowExperimentsPollMs;
 
 /**
  * Module-level cache for the experiments list (shared across hook subscribers).

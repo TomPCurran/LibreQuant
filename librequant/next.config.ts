@@ -1,16 +1,14 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
-import { getPublicMlflowUiUrl, normalizeLocalJupyterBaseUrl } from "./lib/env";
+import { publicEnv } from "./lib/env";
 
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 
-const jupyterOrigin = normalizeLocalJupyterBaseUrl(
-  process.env.NEXT_PUBLIC_JUPYTER_BASE_URL ?? "http://127.0.0.1:8888",
-);
+const jupyterOrigin = publicEnv.jupyterBaseUrlNormalized;
 const jupyterWs = jupyterOrigin.replace(/^http/, "ws");
 
-const mlflowUiOrigin = getPublicMlflowUiUrl();
+const mlflowUiOrigin = publicEnv.mlflowUiUrlNormalized;
 
 // Allow the browser to reach Jupyter (HTTP + WS) in dev and production. Without the Jupyter
 // origin here, `next start` + local Docker Jupyter fails: CSP blocks fetch() to /api/kernels.

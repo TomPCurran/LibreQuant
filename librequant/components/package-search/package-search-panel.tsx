@@ -5,7 +5,8 @@ import type { ServiceManager } from "@jupyterlab/services";
 import { Loader2, Package, Search } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { RunNotebookPipInstall } from "@/components/package-search/notebook-pip-types";
-import { pipInstallViaEphemeralKernel } from "@/lib/pip-install-via-kernel";
+import { PackageSearchResults } from "@/components/package-search/package-search-results";
+import { runPackageInstall } from "@/components/package-search/run-package-install";
 import { isSafePyPIProjectName } from "@/lib/pypi-name";
 import type { PyPIProjectSummary } from "@/lib/types/pypi";
 
@@ -126,61 +127,16 @@ export function PackageSearchPanel({
       setMessage(null);
       setOpen(false);
       try {
-        const code = `%pip install ${name}`;
-
-        if (runNotebookPipInstall) {
-          const notebookResult = await runNotebookPipInstall(code);
-          if (notebookResult !== null) {
-            const result = notebookResult;
-            if (!result.success) {
-              setMessage({
-                kind: "err",
-                text: result.error ?? "Install failed (see kernel output).",
-              });
-              return;
-            }
-            const errOut = result.outputs?.find((o) => o.type === "error");
-            if (errOut && errOut.type === "error") {
-              const c = errOut.content as {
-                evalue?: string;
-                traceback?: string[];
-              };
-              const text =
-                c.evalue?.trim() ||
-                c.traceback?.slice(-4).join("\n") ||
-                "pip reported an error.";
-              setMessage({ kind: "err", text });
-              return;
-            }
-            setMessage({
-              kind: "ok",
-              text: `Installed ${name} in the kernel environment.`,
-            });
-            return;
-          }
-        }
-
-        if (!serviceManager) {
-          setMessage({
-            kind: "err",
-            text: runNotebookPipInstall
-              ? "Notebook is not ready yet."
-              : "Jupyter is not connected.",
-          });
-          return;
-        }
-
-        const pipResult = await pipInstallViaEphemeralKernel(serviceManager, name, {
-          timeoutMs: 300_000,
-        });
-        if (!pipResult.ok) {
-          setMessage({ kind: "err", text: pipResult.message });
-          return;
-        }
-        setMessage({
-          kind: "ok",
-          text: `Installed ${name} in the Jupyter Python environment (same as notebooks).`,
-        });
+        const outcome = await runPackageInstall(
+          name,
+          runNotebookPipInstall,
+          serviceManager,
+        );
+        setMessage(
+          outcome.ok
+            ? { kind: "ok", text: outcome.text }
+            : { kind: "err", text: outcome.text },
+        );
       } catch (e) {
         setMessage({
           kind: "err",
@@ -235,45 +191,12 @@ export function PackageSearchPanel({
             ) : null}
           </div>
 
-          {open && results.length > 0 ? (
-            <ul className="max-h-72 overflow-auto rounded-2xl border border-black/6 bg-background py-1 dark:border-white/10">
-              {results.map((p) => (
-                <li
-                  key={p.name}
-                  className="border-b border-foreground/5 last:border-0"
-                >
-                  <div className="flex gap-2 px-2 py-2 text-left sm:items-center">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-mono-code text-sm text-foreground">
-                        {p.name}
-                      </p>
-                      {p.version ? (
-                        <p className="text-[10px] uppercase tracking-wide text-text-secondary">
-                          {p.version}
-                        </p>
-                      ) : null}
-                      {p.summary ? (
-                        <p className="mt-0.5 line-clamp-2 text-xs text-text-secondary">
-                          {p.summary}
-                        </p>
-                      ) : null}
-                    </div>
-                    <button
-                      type="button"
-                      className="shrink-0 self-start rounded-full bg-alpha px-4 py-2 text-xs font-medium text-white shadow-md shadow-alpha/20 transition hover:opacity-90 disabled:opacity-50 sm:self-center"
-                      disabled={installing !== null}
-                      onClick={() => void install(p.name)}
-                    >
-                      {installing === p.name ? (
-                        <Loader2 className="size-4 animate-spin" aria-hidden />
-                      ) : (
-                        "Install"
-                      )}
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+          {open ? (
+            <PackageSearchResults
+              results={results}
+              installing={installing}
+              onInstall={install}
+            />
           ) : null}
 
           {message ? (
