@@ -46,7 +46,13 @@ def resolve_data_path(relative: str) -> Path:
     ``"uploads/sample.csv"`` → same destination.
     No ``..`` or absolute paths.
     """
-    rel = relative.strip().replace("\\", "/").lstrip("/")
+    raw = relative.strip()
+    if not raw:
+        raise ValueError("Path is empty.")
+    normalized = raw.replace("\\", "/")
+    if Path(normalized).is_absolute():
+        raise ValueError("Path must be relative.")
+    rel = normalized.lstrip("/")
     parts = [p for p in rel.split("/") if p]
     if any(p == ".." for p in parts):
         raise ValueError("Path must not contain '..' segments.")

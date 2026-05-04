@@ -57,7 +57,12 @@ def test_get_bars_cache_hit_no_second_fetch(tmp_data_root: Path) -> None:
     with patch.dict(os.environ, {"LIBREQUANT_DATA_ROOT": str(tmp_data_root)}, clear=False):
         with patch(
             "librequant.data.bars._SOURCE_FETCH",
-            {"yfinance": fake_fetch, "alpaca": fake_fetch, "polygon": fake_fetch, "tiingo": fake_fetch},
+            {
+                "yfinance": fake_fetch,
+                "alpaca": fake_fetch,
+                "polygon": fake_fetch,
+                "tiingo": fake_fetch,
+            },
         ):
             df1 = get_bars("AAPL", "2020-01-02", "2020-01-05", source="yfinance")
             assert len(calls) == 1

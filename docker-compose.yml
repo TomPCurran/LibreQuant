@@ -179,7 +179,7 @@ services:
           done
         fi
         # Editable install only — heavy deps pre-baked in the image (see docker/jupyter/Dockerfile).
-        pip install -q '/opt/librequant[postgres,mlflow]'
+        python -c "import librequant" 2>/dev/null || pip install -q '/opt/librequant[postgres,mlflow]'
         exec start-notebook.sh \
           --IdentityProvider.token=devtoken \
           --ServerApp.disable_check_xsrf=True \

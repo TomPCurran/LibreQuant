@@ -49,7 +49,8 @@ def fetch_yfinance_bars(
         return pd.DataFrame()
 
     if isinstance(raw.columns, pd.MultiIndex):
-        raw.columns = raw.columns.get_level_values(0)
+        # yfinance uses (Symbol, Field); OHLCV names are on the last index level.
+        raw.columns = raw.columns.get_level_values(-1)
 
     rename_map: dict[str, str] = {}
     for c in raw.columns:

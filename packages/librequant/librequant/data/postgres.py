@@ -15,6 +15,8 @@ import os
 import warnings
 from typing import Any
 
+import pandas as pd
+
 from librequant.data.credential_env import load_data_source_secrets
 
 _DEFAULT_PG_CONNECT_TIMEOUT_SEC = 15
@@ -67,7 +69,7 @@ def read_sql_frame(
     params: list[Any] | dict[str, Any] | None = None,
     *,
     connection: str | None = None,
-) -> Any:
+) -> pd.DataFrame:
     """
     Run a parameterized SQL query and return a DataFrame (PostgreSQL only).
 
@@ -94,7 +96,6 @@ def read_sql_frame(
             "read_sql_frame only supports PostgreSQL URLs (postgresql:// or postgres://). "
             "Use get_database_url(...) with another driver for other database types."
         )
-    import pandas as pd
     import psycopg
 
     timeout = _pg_connect_timeout_sec()

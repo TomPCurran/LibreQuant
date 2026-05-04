@@ -1,6 +1,8 @@
 # Pre-installs librequant dependency pins so container start only runs editable
 # `pip install /opt/librequant[postgres,mlflow]` (fast when wheels match).
-FROM quay.io/jupyter/scipy-notebook:latest
+# Pin to avoid surprise breakage. Update deliberately by changing
+# the tag and testing. Must provide Python >= 3.11.
+FROM quay.io/jupyter/scipy-notebook:2024-10-02
 
 USER root
 
