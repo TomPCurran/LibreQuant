@@ -13,7 +13,7 @@ Local-first workbench for algorithmic trading research — Jupyter notebooks, st
 ## Prerequisites
 
 - Docker Desktop (or Docker Engine + Compose plugin)
-- Node.js 18+ and npm
+- Node.js 20+ and npm
 - Git
 
 ## Quick start
