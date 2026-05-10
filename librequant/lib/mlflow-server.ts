@@ -8,16 +8,13 @@
  * @module mlflow-server
  */
 
+import { serverEnv } from "@/lib/server-env";
+
 /**
  * Base URL for MLflow REST API (no trailing slash), for server-side `fetch` only.
  */
 export function getMlflowServerBaseUrl(): string {
-  const fromTracking = process.env.MLFLOW_TRACKING_URI?.trim().replace(
-    /\/$/,
-    "",
-  );
-  const fromApi = process.env.MLFLOW_API_BASE_URL?.trim().replace(/\/$/, "");
-  return fromTracking ?? fromApi ?? "http://127.0.0.1:5000";
+  return serverEnv.mlflowServerBaseUrl;
 }
 
 const MLFLOW_FETCH_TIMEOUT_MS = 15_000;

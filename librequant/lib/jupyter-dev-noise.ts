@@ -8,6 +8,8 @@
  * Set NEXT_PUBLIC_JUPYTER_VERBOSE=1 to disable filtering and see full logs.
  */
 
+import { publicEnv } from "@/lib/env";
+
 function shouldSuppressConsoleArgs(args: unknown[]): boolean {
   const s = args
     .map((a) =>
@@ -48,10 +50,10 @@ function shouldSuppressRejection(reason: unknown): boolean {
 }
 
 export function installJupyterDevNoiseSuppression(): () => void {
-  if (process.env.NODE_ENV !== "development") {
+  if (publicEnv.nodeEnv !== "development") {
     return () => {};
   }
-  if (process.env.NEXT_PUBLIC_JUPYTER_VERBOSE === "1") {
+  if (publicEnv.jupyterVerboseEnabled) {
     return () => {};
   }
 
@@ -108,8 +110,8 @@ let installedCleanup: (() => void) | null = null;
  * cannot emit to the console before a useEffect would patch it (Next forwards those as [browser]).
  */
 export function ensureJupyterDevNoiseInstalledBeforeNotebook(): void {
-  if (process.env.NODE_ENV !== "development") return;
-  if (process.env.NEXT_PUBLIC_JUPYTER_VERBOSE === "1") return;
+  if (publicEnv.nodeEnv !== "development") return;
+  if (publicEnv.jupyterVerboseEnabled) return;
   if (typeof window === "undefined") return;
   if (installedCleanup) return;
   installedCleanup = installJupyterDevNoiseSuppression();

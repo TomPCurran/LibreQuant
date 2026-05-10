@@ -1,16 +1,25 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
-import { getPublicMlflowUiUrl, normalizeLocalJupyterBaseUrl } from "./lib/env";
+import { installDevServerSocketNoiseHandlers } from "./lib/dev-server-socket-noise";
+import { publicEnv } from "./lib/env";
+
+/** Node-only (config load). Avoid `instrumentation.ts`, which is also bundled for Edge and flags `process.prependListener`. */
+if (process.env.NODE_ENV === "development") {
+  installDevServerSocketNoiseHandlers();
+}
 
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 
-const jupyterOrigin = normalizeLocalJupyterBaseUrl(
-  process.env.NEXT_PUBLIC_JUPYTER_BASE_URL ?? "http://127.0.0.1:8888",
-);
+/** Force Tailwind resolution into this package's node_modules when a parent dir (or ~/package.json workspaces) confuses the resolver. */
+function nm(pkg: string): string {
+  return path.join(appDir, "node_modules", pkg);
+}
+
+const jupyterOrigin = publicEnv.jupyterBaseUrlNormalized;
 const jupyterWs = jupyterOrigin.replace(/^http/, "ws");
 
-const mlflowUiOrigin = getPublicMlflowUiUrl();
+const mlflowUiOrigin = publicEnv.mlflowUiUrlNormalized;
 
 // Allow the browser to reach Jupyter (HTTP + WS) in dev and production. Without the Jupyter
 // origin here, `next start` + local Docker Jupyter fails: CSP blocks fetch() to /api/kernels.
@@ -42,6 +51,10 @@ const nextConfig: NextConfig = {
   // Lock workspace to this app so Turbopack does not pick a parent lockfile (e.g. home) and fail to resolve tailwindcss.
   turbopack: {
     root: appDir,
+    resolveAlias: {
+      tailwindcss: nm("tailwindcss"),
+      "@tailwindcss/postcss": nm("@tailwindcss/postcss"),
+    },
   },
   transpilePackages: ["@datalayer/jupyter-react"],
   async headers() {

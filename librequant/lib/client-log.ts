@@ -4,11 +4,10 @@
  * Set to empty string to omit the bracketed prefix.
  */
 
+import { getClientLogBracketPrefix } from "@/lib/env";
+
 function bracketPrefix(): string {
-  const raw = process.env.NEXT_PUBLIC_CLIENT_LOG_PREFIX;
-  if (raw === "") return "";
-  const label = raw ?? "LibreQuant";
-  return `[${label}]`;
+  return getClientLogBracketPrefix();
 }
 
 function format(message: string): string {

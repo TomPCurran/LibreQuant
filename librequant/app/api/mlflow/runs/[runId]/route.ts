@@ -1,54 +1,61 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { flattenError, z } from "zod";
 
-import {
-  isUnreachableFetchError,
-  mlflowProxyForbiddenIfRequired,
-  mlflowUnreachableResponse,
-  mlflowUpstreamJsonError,
-} from "@/lib/mlflow-http";
-import { fetchMlflow, getMlflowServerBaseUrl } from "@/lib/mlflow-server";
+import { mlflowUpstreamJsonError } from "@/lib/mlflow-http";
+import { withMlflowProxy } from "@/lib/mlflow-route-handler";
+import { fetchMlflow } from "@/lib/mlflow-server";
 
 export const runtime = "nodejs";
 
-type PatchBody = {
-  tags?: Record<string, string>;
-};
+/** MLflow tag keys: alphanumeric, underscore, period, hyphen, slash (MLflow REST convention). */
+const mlflowTagKey = z
+  .string()
+  .min(1)
+  .max(250)
+  .regex(/^[a-zA-Z0-9_.\-/]+$/, {
+    message:
+      "Tag keys must be 1–250 characters and use only letters, digits, _, ., -, or /",
+  });
+
+const patchBodySchema = z
+  .object({
+    tags: z.record(mlflowTagKey, z.string().max(5000)),
+  })
+  .strict();
 
 export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ runId: string }> },
 ) {
-  const denied = mlflowProxyForbiddenIfRequired(request);
-  if (denied) return denied;
-
   const { runId } = await context.params;
   if (!runId) {
     return NextResponse.json({ error: "Missing run id" }, { status: 400 });
   }
 
-  let body: PatchBody;
+  let json: unknown;
   try {
-    body = (await request.json()) as PatchBody;
+    json = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const tags = body.tags;
-  if (!tags || typeof tags !== "object") {
+  const parsed = patchBodySchema.safeParse(json);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "Expected body.tags object" },
+      {
+        error: "Invalid request body",
+        details: flattenError(parsed.error),
+      },
       { status: 400 },
     );
   }
 
-  const tagArray = Object.entries(tags).map(([key, value]) => ({
+  const tagArray = Object.entries(parsed.data.tags).map(([key, value]) => ({
     key,
-    value: String(value),
+    value,
   }));
 
-  const base = getMlflowServerBaseUrl();
-
-  try {
+  return withMlflowProxy(request, async (base) => {
     const res = await fetchMlflow(`${base}/api/2.0/mlflow/runs/update`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -63,13 +70,5 @@ export async function PATCH(
     }
 
     return NextResponse.json({ ok: true });
-  } catch (e) {
-    if (isUnreachableFetchError(e)) {
-      return mlflowUnreachableResponse();
-    }
-    return NextResponse.json(
-      { error: "Unexpected error", detail: String(e) },
-      { status: 500 },
-    );
-  }
+  });
 }

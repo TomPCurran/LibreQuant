@@ -95,8 +95,8 @@ def get_bars(
             existing = pd.read_parquet(pq_path)
             existing.index = pd.to_datetime(existing.index)
             existing = _normalize_bars_index(existing)
-        except Exception:
-            # OSError, corrupt Parquet/Arrow, or bad index: refetch (cache is best-effort).
+        except (OSError, ValueError, KeyError):
+            # Corrupt/unreadable Parquet or bad index: discard cache, refetch.
             existing = None
 
     meta_d = read_meta(meta_path)

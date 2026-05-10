@@ -4,6 +4,8 @@ import type { Kernel as DatalayerKernel } from "@datalayer/jupyter-react";
 import type { Kernel as JupyterKernel } from "@jupyterlab/services";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
+import { publicEnv } from "@/lib/env";
+
 /**
  * Tracks Jupyter kernel **WebSocket transport** (`connected` | `connecting` | `disconnected`)
  * from a JupyterLab `IKernelConnection` (e.g. `NotebookAdapter.kernel` when the notebook owns
@@ -67,7 +69,7 @@ export function useLogKernelWebSocketReconnect(
 
     if (status === "connected") {
       const mode =
-        process.env.NODE_ENV === "production" ? "production" : "development";
+        publicEnv.nodeEnv === "production" ? "production" : "development";
       if (
         everConnectedRef.current &&
         (prev === "connecting" || prev === "disconnected")

@@ -25,7 +25,7 @@ Loading screens spell out which phase is active (connecting to the server vs sta
 | [`app/strategies/edit/page.tsx`](app/strategies/edit/page.tsx) | Strategy editor (files under the strategies tree via Contents API).                                                                                         |
 | [`app/data-sources/page.tsx`](app/data-sources/page.tsx)       | Data sources: API keys (`.env.local`), uploads, and links to OHLCV cache docs.                                                                              |
 | [`app/experiments/page.tsx`](app/experiments/page.tsx)         | MLflow experiments: browse runs; selection is shareable via `?experiment=` (see [`.env.example`](.env.example) for `NEXT_PUBLIC_MLFLOW_UI_URL` vs Compose). |
-| [`app/documentation/page.tsx`](app/documentation/page.tsx)     | In-app documentation (notebooks, data sources, strategies, workspace).                                                                                        |
+| [`app/documentation/page.tsx`](app/documentation/page.tsx)     | In-app documentation (notebooks, kernel, data sources, OHLCV helpers, strategies, MLflow experiments).                                                         |
 
 Layouts and global UI: [`app/layout.tsx`](app/layout.tsx) (fonts, theme, skip link); client providers in [`components/providers.tsx`](components/providers.tsx) (`JupyterReachabilityStack`).
 
@@ -49,7 +49,7 @@ Copy [`.env.example`](.env.example) to `.env.local` and adjust (or rely on `pred
 | `NEXT_PUBLIC_MLFLOW_EXPERIMENTS_POLL_MS` | Optional. How often the app polls the MLflow experiments list in the sidebar/explorer (default `12000` ms). Lower values refresh sooner but increase network churn; minimum `1000`. See [`.env.example`](.env.example).                                                                                                                                                                                                                                                               |
 | `NEXT_PUBLIC_JUPYTER_VERBOSE`           | Set to `1` to disable dev log filtering in `lib/jupyter-dev-noise.ts`.                                                                                                                                                                                                                                                                                                                                               |
 | `ALPACA_API_KEY` / `ALPACA_SECRET_KEY`  | Server-only and Jupyter: Alpaca Market Data (see [`packages/librequant`](../packages/librequant)). Set in `.env.local`; never commit.                                                                                                                                                                                                                                                                                |
-| `POLYGON_API_KEY` / `TIINGO_API_KEY`    | Reserved for future connectors; same rules as above.                                                                                                                                                                                                                                                                                                                                                                 |
+| `POLYGON_API_KEY` / `TIINGO_API_KEY`    | Keys for future Polygon/Tiingo support in `get_bars`; those `source` values currently raise `NotImplementedError` (see `packages/librequant`). Same secrecy rules as above.                                                                                                                                                                                                                                             |
 
 Runtime resolution and validation live in [`lib/env.ts`](lib/env.ts) (JSDoc on each export).
 
@@ -132,7 +132,7 @@ This runs `docker compose up -d` from the repo root, waits until port **8888** a
 
 ### Dev terminal: `socket hang up` / `ECONNRESET`
 
-Next.js dev (especially with Turbopack) or aborted browser connections can occasionally log **`Error: socket hang up`** with code **`ECONNRESET`**. That usually means a TCP connection closed while a request or HMR channel was in flight (tab refresh, navigation between routes, or Jupyter reconnecting). It is not the same as a bug in your notebook code. [`instrumentation.ts`](instrumentation.ts) installs dev-only handlers so these errors are less likely to tear down the process; you may still see a single log line from Next. If the app keeps working, you can ignore it.
+Next.js dev (especially with Turbopack) or aborted browser connections can occasionally log **`Error: socket hang up`** with code **`ECONNRESET`**. That usually means a TCP connection closed while a request or HMR channel was in flight (tab refresh, navigation between routes, or Jupyter reconnecting). It is not the same as a bug in your notebook code. [`next.config.ts`](next.config.ts) installs dev-only handlers (when the config loads in Node) so these errors are less likely to tear down the process; you may still see a single log line from Next. If the app keeps working, you can ignore it.
 
 ### Jupyter log: `404` / “Kernel does not exist”
 
@@ -203,7 +203,7 @@ Full detail: **[SECURITY.md](SECURITY.md)** (trusted machine / trusted browser, 
 | [`scripts/dev-stack.mjs`](scripts/dev-stack.mjs)   | `npm run dev:stack`: Docker up, TCP + HTTP readiness, then `npm run dev`.                                                                                                                                                                          |
 | [`scripts/prod-stack.mjs`](scripts/prod-stack.mjs) | `npm run prod:stack`: same, then `npm run build` + `npm run start`.                                                                                                                                                                                |
 | [`docker-compose.yml`](../docker-compose.yml)      | At repository root: Postgres, MLflow, custom Jupyter image, workspace bind mount, loopback ports **5432** / **5000** / **8888** (see [`env.docker.example`](../env.docker.example)).                                                              |
-| [`instrumentation.ts`](instrumentation.ts)         | Next.js instrumentation (dev-only noise handling for server sockets).                                                                                                                                                                              |
+| [`next.config.ts`](next.config.ts) (dev)          | Registers dev-only socket error handlers in Node (avoids Edge `instrumentation` bundling).                                                                                                                                                        |
 
 ### Jupyter integration (high level)
 

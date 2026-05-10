@@ -72,6 +72,9 @@ def _file_artifact_incompatible_with_remote_client(exp: Experiment) -> bool:
     )
 
 
+# WARNING: Uses private MLflow store APIs (_get_store, _hard_delete_run,
+# _hard_delete_experiment). These are not part of the public API and may
+# break across MLflow versions.
 def _permanently_reset_experiment_for_proxied_artifacts(
     client: MlflowClient,
     experiment_name: str,
@@ -93,7 +96,7 @@ def _permanently_reset_experiment_for_proxied_artifacts(
             "`mlflow experiments delete --experiment-id <id>`."
         )
     try:
-        store = _get_store(backend)
+        store = _get_store(backend)  # type: ignore[no-untyped-call]
     except Exception as e:
         err = str(e)
         if "Can't locate revision" in err or "No such revision" in err:
@@ -165,8 +168,6 @@ def _normalize_date(value: str | pd.Timestamp) -> str:
 
 def _param_value_for_mlflow(value: Any) -> str:
     """Serialize param values for ``mlflow.log_param`` (string-friendly)."""
-    if isinstance(value, (str, int, float, bool)):
-        return str(value)
     return str(value)
 
 

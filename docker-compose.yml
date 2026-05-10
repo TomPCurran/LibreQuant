@@ -19,6 +19,12 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    # Resource limits — adjust for your machine. Remove to uncap.
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
 
   # Ensures database `mlflow` exists on every `compose up`. Init scripts under
   # docker-entrypoint-initdb.d only run on *first* cluster init — existing volumes skip them,
@@ -89,6 +95,12 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+    # Resource limits — adjust for your machine. Remove to uncap.
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
 
   jupyter:
     build:
@@ -133,6 +145,23 @@ services:
     # Host loopback only: Jupyter not exposed on the LAN from this machine (see SECURITY.md).
     ports:
       - "127.0.0.1:8888:8888"
+    healthcheck:
+      # Token must match --IdentityProvider.token in command below (local dev only).
+      test:
+        [
+          "CMD-SHELL",
+          'curl -sf "http://127.0.0.1:8888/api/status?token=devtoken" || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # Resource limits — adjust for your machine. Remove to uncap.
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+          cpus: "2.0"
     command:
       - bash
       - -c
@@ -150,7 +179,7 @@ services:
           done
         fi
         # Editable install only — heavy deps pre-baked in the image (see docker/jupyter/Dockerfile).
-        pip install -q '/opt/librequant[postgres,mlflow]'
+        python -c "import librequant" 2>/dev/null || pip install -q '/opt/librequant[postgres,mlflow]'
         exec start-notebook.sh \
           --IdentityProvider.token=devtoken \
           --ServerApp.disable_check_xsrf=True \

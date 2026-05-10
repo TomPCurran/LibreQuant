@@ -1,69 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import type { OnMount } from "@monaco-editor/react";
+import type { IDisposable } from "monaco-editor";
+import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
-import { Compartment, EditorState, Prec } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
-import { basicSetup } from "codemirror";
-import { python } from "@codemirror/lang-python";
-import { oneDark } from "@codemirror/theme-one-dark";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { registerStrategyPythonCompletions } from "@/lib/monaco-strategy-completions";
 
-const LIGHT_THEME = EditorView.theme({
-  "&": {
-    backgroundColor: "hsl(40 18% 97%)",
-    color: "hsl(240 6% 10%)",
-    fontSize: "13.5px",
-    height: "100%",
-  },
-  ".cm-content": {
-    fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
-    padding: "12px 0",
-    caretColor: "hsl(173 80% 36%)",
-  },
-  "&.cm-focused .cm-cursor": {
-    borderLeftColor: "hsl(173 80% 36%)",
-  },
-  ".cm-gutters": {
-    backgroundColor: "hsl(240 6% 95%)",
-    color: "hsl(240 4% 55%)",
-    borderRight: "1px solid hsl(240 6% 90%)",
-    fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
-    fontSize: "12px",
-  },
-  ".cm-activeLineGutter": {
-    backgroundColor: "hsl(173 80% 36% / 0.08)",
-  },
-  ".cm-activeLine": {
-    backgroundColor: "hsl(173 80% 36% / 0.04)",
-  },
-  "&.cm-focused .cm-selectionBackground, .cm-selectionBackground": {
-    backgroundColor: "hsl(173 80% 36% / 0.15) !important",
-  },
-  ".cm-matchingBracket": {
-    backgroundColor: "hsl(173 80% 36% / 0.2)",
-    outline: "1px solid hsl(173 80% 36% / 0.4)",
-  },
-  ".cm-scroller": {
-    overflow: "auto",
-  },
-});
-
-const DARK_EXTRA = EditorView.theme({
-  "&": {
-    fontSize: "13.5px",
-    height: "100%",
-  },
-  ".cm-content": {
-    fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
-    padding: "12px 0",
-  },
-  ".cm-gutters": {
-    fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
-    fontSize: "12px",
-  },
-  ".cm-scroller": {
-    overflow: "auto",
-  },
+const Editor = dynamic(() => import("@monaco-editor/react").then((m) => m.default), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full min-h-0 items-center justify-center text-sm text-text-secondary">
+      Loading editor…
+    </div>
+  ),
 });
 
 interface PythonCodeEditorProps {
@@ -80,89 +30,80 @@ export function PythonCodeEditor({
   onSave,
   className = "",
 }: PythonCodeEditorProps) {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<EditorView | null>(null);
-  const themeCompartmentRef = useRef<Compartment | null>(null);
   const onChangeRef = useRef(onChange);
   const onSaveRef = useRef(onSave);
+  const completionDisposableRef = useRef<IDisposable | null>(null);
+  const [loaderReady, setLoaderReady] = useState(false);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
-  onChangeRef.current = onChange;
-  onSaveRef.current = onSave;
-
-  const themeExtensions = useCallback((dark: boolean) => {
-    return dark ? [oneDark, DARK_EXTRA] : [LIGHT_THEME];
-  }, []);
-
-  const createState = useCallback(
-    (doc: string, dark: boolean, themeComp: Compartment) => {
-      const saveMap = keymap.of([
-        {
-          key: "Mod-s",
-          preventDefault: true,
-          run: () => {
-            onSaveRef.current?.();
-            return true;
-          },
-        },
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const [{ loader }, monaco] = await Promise.all([
+        import("@monaco-editor/react"),
+        import("monaco-editor"),
       ]);
-
-      return EditorState.create({
-        doc,
-        extensions: [
-          basicSetup,
-          python(),
-          themeComp.of(themeExtensions(dark)),
-          Prec.highest(saveMap),
-          EditorView.updateListener.of((update) => {
-            if (update.docChanged) {
-              onChangeRef.current?.(update.state.doc.toString());
-            }
-          }),
-          EditorView.lineWrapping,
-        ].flat(),
-      });
-    },
-    [themeExtensions],
-  );
-
-  useEffect(() => {
-    const el = editorRef.current;
-    if (!el) return;
-
-    const themeComp = new Compartment();
-    themeCompartmentRef.current = themeComp;
-
-    const view = new EditorView({
-      state: createState(initialValue, isDark, themeComp),
-      parent: el,
-    });
-
-    viewRef.current = view;
-
+      if (cancelled) return;
+      loader.config({ monaco });
+      setLoaderReady(true);
+    })();
     return () => {
-      themeCompartmentRef.current = null;
-      view.destroy();
-      viewRef.current = null;
+      cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    const view = viewRef.current;
-    const comp = themeCompartmentRef.current;
-    if (!view || !comp) return;
+    onChangeRef.current = onChange;
+    onSaveRef.current = onSave;
+  });
 
-    view.dispatch({
-      effects: comp.reconfigure(themeExtensions(isDark)),
+  const handleMount: OnMount = useCallback((editor, monaco) => {
+    completionDisposableRef.current?.dispose();
+    completionDisposableRef.current = registerStrategyPythonCompletions(monaco);
+
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+      onSaveRef.current?.();
     });
-  }, [isDark, themeExtensions]);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      completionDisposableRef.current?.dispose();
+      completionDisposableRef.current = null;
+    };
+  }, []);
 
   return (
     <div
-      ref={editorRef}
-      className={`h-full min-h-0 overflow-hidden rounded-xl border border-foreground/8 ${className}`}
-    />
+      className={`flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-foreground/8 ${className}`}
+      style={{ background: "hsl(var(--editor-surface))" }}
+    >
+      <div className="min-h-0 flex-1">
+        {loaderReady ? (
+          <Editor
+            height="100%"
+            language="python"
+            theme={isDark ? "vs-dark" : "light"}
+            defaultValue={initialValue}
+            onChange={(value) => onChangeRef.current?.(value ?? "")}
+            onMount={handleMount}
+            options={{
+              minimap: { enabled: true },
+              wordWrap: "on",
+              automaticLayout: true,
+              fontSize: 14,
+              bracketPairColorization: { enabled: true },
+              suggestOnTriggerCharacters: true,
+              fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
+            }}
+          />
+        ) : (
+          <div className="flex h-full min-h-0 items-center justify-center text-sm text-text-secondary">
+            Loading editor…
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
