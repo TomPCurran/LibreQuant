@@ -21,16 +21,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="LibreQuant — 100% local quantitative workbench: Jupyter notebooks, Python strategies, data credentials, OHLCV cache, and MLflow experiments. Runs on your machine with Docker Compose (loopback only)."
+      content="LibreQuant — open-source, local-first workbench for your own quantitative research: Jupyter notebooks, Python strategies, market-data keys, Parquet OHLCV cache, and MLflow runs. Runs on your machine with Docker Compose (services bound to loopback by default)."
     />
     <meta id="doc-theme-color" name="theme-color" content="#f9f9fb" />
-    <meta property="og:title" content="LibreQuant | Local-first algorithmic research" />
+    <meta property="og:title" content="LibreQuant | Local-first research workbench" />
     <meta
       property="og:description"
-      content="Open-source browser shell for notebooks, strategies, market data, and MLflow—backed by Jupyter, PostgreSQL, and MLflow on localhost. No hosted runtime."
+      content="Free MIT-licensed app for hobbyists and solo researchers: a Next.js shell around Jupyter, strategies, data credentials, and MLflow—all on your machine via Docker Compose and localhost ports."
     />
     <meta property="og:type" content="website" />
-    <title>LibreQuant | Local-first algorithmic research</title>
+    <title>LibreQuant | Local-first research workbench</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -366,21 +366,21 @@
         <h1
           class="text-4xl md:text-5xl heading-brand text-text-primary mb-6 max-w-3xl mx-auto"
         >
-          The Local-First Workbench <br />
-          for Algorithmic Alpha.
+          A Local-First Workbench <br />
+          for Your Own Quant Research.
         </h1>
         <p
           class="text-lg font-light text-text-secondary max-w-2xl mx-auto mb-6 leading-relaxed"
         >
-          Run everything on your machine: a Next.js browser shell connects to
-          Jupyter for notebooks, hosts strategy editing and data-source
-          controls, and surfaces MLflow experiments—code, keys, and cache stay
-          under your custody, not in a hosted runtime.
+          Run notebooks, strategies, and experiment tracking on hardware you
+          control: a Next.js UI talks to Jupyter on localhost, edits Python in
+          your workspace volume, helps manage data-provider keys, and lists
+          MLflow runs—nothing depends on a vendor-hosted research runtime.
         </p>
         <p class="text-sm text-text-secondary max-w-xl mx-auto mb-8 font-light">
-          You own signal logic, credentials, and how you validate ideas; the
-          workbench keeps research artifacts in one routed UI with
-          loopback-bound services by default.
+          Built for individuals tinkering after hours, retail-scale workflows,
+          and anyone cloning the repo to learn or extend it—your methodology,
+          your data custody, your responsibility to validate results.
         </p>
 
         <div
@@ -809,9 +809,10 @@
               In-app guides
             </h3>
             <p class="text-sm font-light text-text-secondary leading-relaxed">
-              A <span class="font-mono-code text-[12px]">/documentation</span> page
-              in the workbench walks through notebooks, kernel controls, data
-              sources, and strategies—aimed at contributors and advanced users.
+              The <span class="font-mono-code text-[12px]">/documentation</span> route
+              summarizes what this build actually does—notebook routes, kernel
+              toolbar, data sources and OHLCV helpers, strategies, and MLflow
+              explorer—so you can skim without reading the whole repo.
             </p>
           </div>
         </div>
